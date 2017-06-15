@@ -13,6 +13,9 @@ void clear();
 void setAll();
 int xy2Pos(int x, int y);
 
+
+#define NUM_STREAKS 12
+
 class Streak {
   private :
     int id;
@@ -68,18 +71,7 @@ class Streak {
 };
 
 CRGB pink = 0xFF0813;
-
-Streak* s0 = new Streak(0, pink);
-Streak* s1 = new Streak(1, pink);
-Streak* s2 = new Streak(2, pink);
-Streak* s3 = new Streak(3, pink);
-Streak* s4 = new Streak(4, pink);
-Streak* s5 = new Streak(5, pink);
-Streak* s6 = new Streak(6, pink);
-Streak* s7 = new Streak(7, pink);
-Streak* s8 = new Streak(8, pink);
-Streak* s9 = new Streak(9, pink);
-Streak* s10 = new Streak(10, pink);
+Streak * streaks[NUM_STREAKS];
 
 void setup() {
   Serial.begin(9600);
@@ -88,22 +80,18 @@ void setup() {
   clear();
   FastLED.show();
   delay(2000);
+
+  for(unsigned int i=0; i<NUM_STREAKS; i++) {
+    streaks[i] = new Streak(i, pink);
+  }
 }
 
 void loop() {
     unsigned long currentTime = millis();
     clear();
-    s0->display(currentTime);
-    s1->display(currentTime);
-    s2->display(currentTime);
-    s3->display(currentTime);
-    s4->display(currentTime);
-    s5->display(currentTime);
-    s6->display(currentTime);
-    s7->display(currentTime);
-    s8->display(currentTime);
-    s9->display(currentTime);
-    s10->display(currentTime);
+    for(unsigned int i=0; i<NUM_STREAKS; i++) {
+      streaks[i]->display(currentTime);
+    }
     FastLED.show();
 }
 
