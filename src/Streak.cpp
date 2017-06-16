@@ -1,0 +1,56 @@
+#include "Streak.h"
+
+Streak::Streak (int columns, int rows, CRGB * leds, CRGB color) {
+  this->columns = columns;
+  this->rows = rows;
+  this->leds = leds;
+  this->frame = 0;
+  this->length = 0;
+  this->color = color;
+  this->color.maximizeBrightness();
+}
+
+void Streak::inititalize() {
+  this->frame = 0;
+  this->nextTime = 0;
+  this->interval = 20 + random8(60);
+  this->column = random8(this->columns);
+  this->length = random8(8, 16);
+}
+
+void Streak::display (unsigned long currentTime) {
+  int currentFrame = this->frame % (this->rows + this->length);
+
+  if (currentFrame == 0) {
+    this->inititalize();
+  }
+
+  if (currentTime > this->nextTime) {
+    // Serial.print(this->id);
+    // Serial.print(": ");
+    // Serial.println(currentTime);
+    this->frame++;
+    this->nextTime = currentTime + this->interval;
+  }
+
+  int y = currentFrame;
+  int pos;
+  for (int i=0; i<this->length; i++) {
+    if ((y - i >= 0) && (y - i < this->rows)) {
+      pos = this->xy2Pos(this->column, y - i);
+      this->leds[pos] = this->color;
+      this->leds[pos].fadeToBlackBy((256 / this->length) * i);
+    }
+  }
+}
+
+int Streak::xy2Pos (int x, int y) {
+  int pos = x * this->rows;
+  if (x % 2 == 0) {
+    pos = pos + y;
+  } else {
+    pos = pos + ((this->rows - 1) - y);
+  }
+
+  return pos;
+}
