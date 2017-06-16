@@ -1,14 +1,9 @@
 #include <Arduino.h>
-#include "FastLED.h"
+#include <FastLED.h>
+#include "Visualization.h"
 
-class Streak {
+class Streak : public Visualization {
   private :
-    int columns;
-    int rows;
-    CRGB * leds;
-    int frame;
-    unsigned long nextTime;
-    int interval;
     int column;
     int length;
     CRGB color;
@@ -19,6 +14,4 @@ class Streak {
     void inititalize();
 
     void display (unsigned long currentTime);
-
-    int xy2Pos (int x, int y);
 };
