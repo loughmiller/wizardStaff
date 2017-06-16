@@ -15,13 +15,16 @@ CRGB off;
 void clear();
 void setAll();
 
-#define NUM_STREAKS 12
+#define NUM_STREAKS 4
 #define NUM_LADDERS 4
 
 CRGB pink = 0x220102;
 CRGB blue = 0x000022;
-CRGB purple = 0x080010;
-Streak * streaks[NUM_STREAKS];
+CRGB purple = 0x020003;
+
+Streak * pinkS[NUM_STREAKS];
+Streak * blueS[NUM_STREAKS];
+Streak * purpleS[NUM_STREAKS];
 Ladder * pinkL[NUM_STREAKS];
 Ladder * blueL[NUM_STREAKS];
 Ladder * purpleL[NUM_STREAKS];
@@ -37,7 +40,9 @@ void setup() {
   delay(2000);
 
   for(unsigned int i=0; i<NUM_STREAKS; i++) {
-    streaks[i] = new Streak(COLUMNS, ROWS, leds, pink);
+    pinkS[i] = new Streak(COLUMNS, ROWS, leds, pink);
+    blueS[i] = new Streak(COLUMNS, ROWS, leds, blue);
+    purpleS[i] = new Streak(COLUMNS, ROWS, leds, purple);
   }
 
   for(unsigned int i=0; i<NUM_LADDERS; i++) {
@@ -52,7 +57,9 @@ void loop() {
     clear();
 
     for(unsigned int i=0; i<NUM_STREAKS; i++) {
-      streaks[i]->display(currentTime);
+      pinkS[i]->display(currentTime);
+      blueS[i]->display(currentTime);
+      purpleS[i]->display(currentTime);
     }
 
     for(unsigned int i=0; i<NUM_STREAKS; i++) {
