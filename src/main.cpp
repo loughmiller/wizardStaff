@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include <FastLED.h>
+#include "Visualization.h"
 #include "Streak.h"
+#include "Ladder.h"
 
 #define NUM_LEDS 360
 #define ROWS 60
@@ -13,10 +15,13 @@ CRGB off;
 void clear();
 void setAll();
 
-#define NUM_STREAKS 12
+#define NUM_STREAKS 4
 
-CRGB pink = 0xFF0813;
-Streak * streaks[NUM_STREAKS];
+CRGB pink = 0x220102;
+//Streak * streaks[NUM_STREAKS];
+Ladder * pinkL[NUM_STREAKS];
+Ladder * blueL[NUM_STREAKS];
+Ladder * purpleL[NUM_STREAKS];
 
 void setup() {
   Serial.begin(9600);
@@ -26,16 +31,26 @@ void setup() {
   FastLED.show();
   delay(2000);
 
+  // for(unsigned int i=0; i<NUM_STREAKS; i++) {
+  //   streaks[i] = new Streak(COLUMNS, ROWS, leds, pink);
+  // }
   for(unsigned int i=0; i<NUM_STREAKS; i++) {
-    streaks[i] = new Streak(COLUMNS, ROWS, leds, pink);
+    pinkL[i] = new Ladder(COLUMNS, ROWS, leds, pink);
+    blueL[i] = new Ladder(COLUMNS, ROWS, leds, 0x000022);
+    purpleL[i] = new Ladder(COLUMNS, ROWS, leds, 0x080010);
   }
 }
 
 void loop() {
     unsigned long currentTime = millis();
     clear();
+    // for(unsigned int i=0; i<NUM_STREAKS; i++) {
+    //   streaks[i]->display(currentTime);
+    // }
     for(unsigned int i=0; i<NUM_STREAKS; i++) {
-      streaks[i]->display(currentTime);
+      pinkL[i]->display(currentTime);
+      blueL[i]->display(currentTime);
+      purpleL[i]->display(currentTime);
     }
     FastLED.show();
 }

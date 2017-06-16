@@ -1,3 +1,6 @@
+#ifndef VISUALIZATION_H
+#define VISUALIZATION_H
+
 #include <Arduino.h>
 #include "FastLED.h"
 
@@ -19,3 +22,5 @@ class Visualization {
 
     int xy2Pos (int x, int y);
 };
+
+#endif /* VISUALIZATION_H */
