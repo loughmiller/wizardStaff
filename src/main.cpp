@@ -4,6 +4,7 @@
 #include "Streak.h"
 #include "Ladder.h"
 #include "Sparkle.h"
+#include "Pulse.h"
 
 #define NUM_LEDS 360
 #define ROWS 60
@@ -32,6 +33,8 @@ Ladder * greenL[NUM_STREAKS];
 
 Sparkle * sparkle;
 
+Pulse * pulse;
+
 int active = 0;
 
 void setup() {
@@ -56,27 +59,29 @@ void setup() {
   }
 
   sparkle = new Sparkle(COLUMNS, ROWS, leds, pink, 67);
-  // p2 = new Sparkle(COLUMNS, ROWS, leds, blue);
-  // p3 = new Sparkle(COLUMNS, ROWS, leds, green);
+
+  pulse = new Pulse(COLUMNS, ROWS, leds, pink);
 }
 
 void loop() {
     unsigned long currentTime = millis();
     clear();
 
-    for(unsigned int i=0; i<NUM_STREAKS; i++) {
-      pinkS[i]->display(currentTime);
-      blueS[i]->display(currentTime);
-      greenS[i]->display(currentTime);
-    }
+    // for(unsigned int i=0; i<NUM_STREAKS; i++) {
+    //   pinkS[i]->display(currentTime);
+    //   blueS[i]->display(currentTime);
+    //   greenS[i]->display(currentTime);
+    // }
+    //
+    // for(unsigned int i=0; i<NUM_STREAKS; i++) {
+    //   pinkL[i]->display(currentTime);
+    //   blueL[i]->display(currentTime);
+    //   greenL[i]->display(currentTime);
+    // }
+    //
+    // sparkle->display();
 
-    for(unsigned int i=0; i<NUM_STREAKS; i++) {
-      pinkL[i]->display(currentTime);
-      blueL[i]->display(currentTime);
-      greenL[i]->display(currentTime);
-    }
-
-    sparkle->display();
+    pulse->display(currentTime);
 
     FastLED.show();
 }

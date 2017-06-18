@@ -40,5 +40,4 @@ void Ladder::display (unsigned long currentTime) {
       this->leds[xy2Pos(i, y)] = this->color;
     }
   }
-
 }
