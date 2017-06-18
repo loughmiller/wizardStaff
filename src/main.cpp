@@ -17,7 +17,7 @@ CRGB off;
 void clear();
 void setAll();
 
-#define NUM_STREAKS 3
+#define NUM_STREAKS 8
 #define NUM_LADDERS 3
 
 CRGB pink = 0xFF0B20;
@@ -31,7 +31,8 @@ Ladder * pinkL[NUM_STREAKS];
 Ladder * blueL[NUM_STREAKS];
 Ladder * greenL[NUM_STREAKS];
 
-Sparkle * sparkle;
+Sparkle * s1;
+Sparkle * s2;
 
 Pulse * pulse;
 
@@ -58,7 +59,8 @@ void setup() {
     pinkL[i] = new Ladder(COLUMNS, ROWS, leds, pink);
   }
 
-  sparkle = new Sparkle(COLUMNS, ROWS, leds, pink, 67);
+  s1 = new Sparkle(COLUMNS, ROWS, leds, blue, 201);
+  s2 = new Sparkle(COLUMNS, ROWS, leds, green, 421);
 
   pulse = new Pulse(COLUMNS, ROWS, leds, pink);
 }
@@ -67,11 +69,14 @@ void loop() {
     unsigned long currentTime = millis();
     clear();
 
-    // for(unsigned int i=0; i<NUM_STREAKS; i++) {
-    //   pinkS[i]->display(currentTime);
-    //   blueS[i]->display(currentTime);
-    //   greenS[i]->display(currentTime);
-    // }
+    s1->display();
+    s2->display();
+
+    for(unsigned int i=0; i<NUM_STREAKS; i++) {
+      pinkS[i]->display(currentTime);
+//      blueS[i]->display(currentTime);
+//      greenS[i]->display(currentTime);
+    }
     //
     // for(unsigned int i=0; i<NUM_STREAKS; i++) {
     //   pinkL[i]->display(currentTime);
@@ -79,9 +84,8 @@ void loop() {
     //   greenL[i]->display(currentTime);
     // }
     //
-    // sparkle->display();
 
-    pulse->display(currentTime);
+    // pulse->display(currentTime);
 
     FastLED.show();
 }
