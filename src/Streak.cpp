@@ -10,7 +10,7 @@ Streak::Streak (int columns, int rows, CRGB * leds, CRGB color)
 
 void Streak::inititalize() {
   Visualization::inititalize();
-  this->interval = 20 + random8(60);
+  this->interval = random8(100);
   this->column = random8(this->columns);
   this->length = random8(8, 16);
 }
