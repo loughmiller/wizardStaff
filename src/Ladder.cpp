@@ -1,6 +1,6 @@
 #include "Ladder.h"
 
-#define MIN_INTERVAL 24
+#define MIN_INTERVAL 2
 
 Ladder::Ladder (int columns, int rows, CRGB * leds, CRGB color)
 : Visualization(columns, rows, leds)

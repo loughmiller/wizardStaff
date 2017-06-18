@@ -44,15 +44,15 @@ void setup() {
   delay(2000);
 
   for(unsigned int i=0; i<NUM_STREAKS; i++) {
-    pinkS[i] = new Streak(COLUMNS, ROWS, leds, pink);
-    blueS[i] = new Streak(COLUMNS, ROWS, leds, blue);
     greenS[i] = new Streak(COLUMNS, ROWS, leds, green);
+    blueS[i] = new Streak(COLUMNS, ROWS, leds, blue);
+    pinkS[i] = new Streak(COLUMNS, ROWS, leds, pink);
   }
 
   for(unsigned int i=0; i<NUM_LADDERS; i++) {
-    pinkL[i] = new Ladder(COLUMNS, ROWS, leds, pink);
-    blueL[i] = new Ladder(COLUMNS, ROWS, leds, blue);
     greenL[i] = new Ladder(COLUMNS, ROWS, leds, green);
+    blueL[i] = new Ladder(COLUMNS, ROWS, leds, blue);
+    pinkL[i] = new Ladder(COLUMNS, ROWS, leds, pink);
   }
 
   sparkle = new Sparkle(COLUMNS, ROWS, leds, pink, 67);
