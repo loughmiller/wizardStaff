@@ -6,9 +6,9 @@
 #include "Sparkle.h"
 #include "Pulse.h"
 
-#define NUM_LEDS 360
-#define ROWS 60
-#define COLUMNS NUM_LEDS/ROWS
+#define NUM_LEDS 358
+#define ROWS 45
+#define COLUMNS 6
 #define DATA_PIN 52
 
 CRGB leds[NUM_LEDS];
@@ -34,12 +34,12 @@ Ladder * greenL[NUM_STREAKS];
 Sparkle * s1;
 Sparkle * s2;
 
-Pulse * pulse;
+Pulse * pulseHeadPiece;
 
 int active = 0;
 
 void setup() {
-  FastLED.setBrightness(32);
+  FastLED.setBrightness(64);
   Serial.begin(9600);
   off = 0x000000;
   FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
@@ -59,18 +59,19 @@ void setup() {
     pinkL[i] = new Ladder(COLUMNS, ROWS, leds, pink);
   }
 
-  s1 = new Sparkle(COLUMNS, ROWS, leds, blue, 201);
-  s2 = new Sparkle(COLUMNS, ROWS, leds, green, 421);
+  s1 = new Sparkle(1, NUM_LEDS, leds, blue, 201);
+  //s2 = new Sparkle(COLUMNS, ROWS, leds, green, 421);
 
-  pulse = new Pulse(COLUMNS, ROWS, leds, pink);
+  pulseHeadPiece = new Pulse(270, 88, leds, pink);
 }
 
 void loop() {
     unsigned long currentTime = millis();
     clear();
 
+    pulseHeadPiece->display(currentTime);
+
     s1->display();
-    s2->display();
 
     for(unsigned int i=0; i<NUM_STREAKS; i++) {
       pinkS[i]->display(currentTime);
@@ -84,8 +85,6 @@ void loop() {
     //   greenL[i]->display(currentTime);
     // }
     //
-
-    // pulse->display(currentTime);
 
     FastLED.show();
 }

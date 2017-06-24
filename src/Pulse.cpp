@@ -1,27 +1,30 @@
 #include "Pulse.h"
 
-Pulse::Pulse (int columns, int rows, CRGB * leds, CRGB color)
-: Visualization(columns, rows, leds)
+Pulse::Pulse(int offset, int count, CRGB * leds, CRGB color)
+: Visualization(0, 0, leds)
 {
+  this->offset = offset;
+  this->count = count;
   this->color = color;
   this->color.maximizeBrightness();
-  this->interval = 4;
+  this->interval = 10;
   this->nextTime = 0;
 }
 
 void Pulse::display (unsigned long currentTime) {
-  int currentFrame = this->frame % 144;
+  int currentFrame = this->frame % 200;
 
   if (currentTime > this->nextTime) {
     // Serial.print(this->id);
     // Serial.print(": ");
-    // Serial.println(abs(currentFrame - 32)+1);
+    // Serial.println(abs(currentFrame-64));
     this->frame++;
     this->nextTime = currentTime + this->interval;
-    FastLED.setBrightness(abs(currentFrame - 72)+8);
+    // FastLED.setBrightness(abs(currentFrame - 72)+8);
   }
 
-  for (int i=currentFrame%4; i<this->rows*this->columns; i=i+4) {
+  for (int i=this->offset; i<this->offset+this->count; i++) {
     leds[i] = this->color;
+    leds[i].fadeLightBy(abs(currentFrame - 100));
   }
 }
