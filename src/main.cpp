@@ -1,10 +1,12 @@
 #include <Arduino.h>
 #include <FastLED.h>
+#include <AudioAnalyzer.h>
 #include "Visualization.h"
 #include "Streak.h"
 #include "Ladder.h"
 #include "Sparkle.h"
 #include "Pulse.h"
+#include "Frequency.h"
 
 #define NUM_LEDS 358
 #define ROWS 45
@@ -36,13 +38,29 @@ Sparkle * s2;
 
 Pulse * pulseHeadPiece;
 
+Frequency * freq;
+
 int active = 0;
+
+Analyzer Audio = Analyzer(4,5,0);//Strobe pin ->4  RST pin ->5 Analog Pin ->0
+//Analyzer Audio = Analyzer();//Strobe->4 RST->5 Analog->0
+
+int FreqVal[7];
+int MaxFreqVal[7];
+
 
 void setup() {
   FastLED.setBrightness(64);
   Serial.begin(9600);
   off = 0x000000;
   FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
+  Audio.Init();
+
+  for(int i=0;i<7;i++) {
+    MaxFreqVal[i] = 0;
+  }
+
+
   clear();
   FastLED.show();
   delay(2000);
@@ -63,13 +81,33 @@ void setup() {
   //s2 = new Sparkle(COLUMNS, ROWS, leds, green, 421);
 
   pulseHeadPiece = new Pulse(270, 88, leds, pink);
+
+  freq = new Frequency(270, 88, leds, pink);
 }
 
 void loop() {
     unsigned long currentTime = millis();
+
+    // AUDIO
+    Audio.ReadFreq(FreqVal);//return 7 value of 7 bands pass filiter
+                            //Frequency(Hz):63  160  400  1K  2.5K  6.25K  16K
+                            //FreqVal[]:      0    1    2    3    4    5    6
+
+    // for(int i=0;i<7;i++) {
+    //   Serial.print(max((FreqVal[i]-100),0));//Transimit the DC value of the seven bands
+    //   if(i<6)  Serial.print(",");
+    //   else Serial.println();
+    // }
+
+    for(int i=0;i<7;i++) {
+      MaxFreqVal[i] = max(FreqVal[i]-70, MaxFreqVal[i]);
+    }
+
     clear();
 
-    pulseHeadPiece->display(currentTime);
+    // pulseHeadPiece->display(currentTime);
+
+    freq->display(currentTime, MaxFreqVal);
 
     s1->display();
 
