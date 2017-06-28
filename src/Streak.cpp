@@ -40,3 +40,8 @@ void Streak::display (unsigned long currentTime) {
     }
   }
 }
+
+void Streak::setColor(CRGB color) {
+  this->color = color;
+  // this->color.maximizeBrightness();
+}

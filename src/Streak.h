@@ -14,4 +14,6 @@ class Streak : public Visualization {
     void inititalize();
 
     void display (unsigned long currentTime);
+
+    void setColor (CRGB color);
 };

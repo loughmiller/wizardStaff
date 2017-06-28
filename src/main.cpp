@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include <FastLED.h>
 #include <AudioAnalyzer.h>
+#include <Wire.h>
+#include <Adafruit_TCS34725.h>
 #include "Visualization.h"
 #include "Streak.h"
 #include "Ladder.h"
@@ -11,13 +13,16 @@
 #define NUM_LEDS 358
 #define ROWS 45
 #define COLUMNS 6
-#define DATA_PIN 52
+#define SENSOR_ACTIVATE_PIN 51
+#define DISPLAY_LED_PIN 52
+#define SENSOR_LED_PIN 53
 
 CRGB leds[NUM_LEDS];
 CRGB off;
 
 void clear();
 void setAll();
+CRGB readColor();
 
 #define NUM_STREAKS 8
 #define NUM_LADDERS 3
@@ -48,18 +53,48 @@ Analyzer Audio = Analyzer(4,5,0);//Strobe pin ->4  RST pin ->5 Analog Pin ->0
 int FreqVal[7];
 int MaxFreqVal[7];
 
+// COLOR SENSOR
+Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
+
+// our RGB -> eye-recognized gamma color
+byte gammatable[256];
+
 
 void setup() {
-  FastLED.setBrightness(64);
   Serial.begin(9600);
-  off = 0x000000;
-  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
-  Audio.Init();
 
+  // AUDIO STUFF
+  Audio.Init();
   for(int i=0;i<7;i++) {
     MaxFreqVal[i] = 0;
   }
 
+  // COLOR SENSOR
+  pinMode(SENSOR_LED_PIN, OUTPUT);
+  pinMode(SENSOR_ACTIVATE_PIN, INPUT);
+
+  if (tcs.begin()) {
+    Serial.println("Found sensor");
+    digitalWrite(SENSOR_LED_PIN, LOW);
+  } else {
+    Serial.println("No TCS34725 found ... check your connections");
+    while (1); // halt!
+  }
+
+  for (int i=0; i<256; i++) {
+    float x = i;
+    x /= 255;
+    x = pow(x, 2.5);
+    x *= 255;
+
+    gammatable[i] = x;
+    // Serial.println(gammatable[i]);
+  }
+
+  // DISPLAY STUFF
+  FastLED.setBrightness(64);
+  off = 0x000000;
+  FastLED.addLeds<NEOPIXEL, DISPLAY_LED_PIN>(leds, NUM_LEDS).setCorrection( Typical8mmPixel );;
 
   clear();
   FastLED.show();
@@ -82,49 +117,41 @@ void setup() {
 
   pulseHeadPiece = new Pulse(270, 88, leds, pink);
 
-  freq = new Frequency(270, 88, leds, pink);
+  // freq = new Frequency(270, 88, leds, pink);
 }
 
 void loop() {
-    unsigned long currentTime = millis();
+  CRGB color;
 
-    // AUDIO
-    Audio.ReadFreq(FreqVal);//return 7 value of 7 bands pass filiter
-                            //Frequency(Hz):63  160  400  1K  2.5K  6.25K  16K
-                            //FreqVal[]:      0    1    2    3    4    5    6
-
-    // for(int i=0;i<7;i++) {
-    //   Serial.print(max((FreqVal[i]-100),0));//Transimit the DC value of the seven bands
-    //   if(i<6)  Serial.print(",");
-    //   else Serial.println();
-    // }
-
-    for(int i=0;i<7;i++) {
-      MaxFreqVal[i] = max(FreqVal[i]-70, MaxFreqVal[i]);
-    }
-
-    clear();
-
-    // pulseHeadPiece->display(currentTime);
-
-    freq->display(currentTime, MaxFreqVal);
-
-    s1->display();
-
+  if (digitalRead(SENSOR_ACTIVATE_PIN) == HIGH) {
+    color = readColor();
     for(unsigned int i=0; i<NUM_STREAKS; i++) {
-      pinkS[i]->display(currentTime);
+      pinkS[i]->setColor(color);
+    }
+  }
+
+  unsigned long currentTime = millis();
+
+  clear();
+
+  // pulseHeadPiece->display(currentTime);
+
+  s1->display();
+
+  for(unsigned int i=0; i<NUM_STREAKS; i++) {
+    pinkS[i]->display(currentTime);
 //      blueS[i]->display(currentTime);
 //      greenS[i]->display(currentTime);
-    }
-    //
-    // for(unsigned int i=0; i<NUM_STREAKS; i++) {
-    //   pinkL[i]->display(currentTime);
-    //   blueL[i]->display(currentTime);
-    //   greenL[i]->display(currentTime);
-    // }
-    //
+  }
+  //
+  // for(unsigned int i=0; i<NUM_STREAKS; i++) {
+  //   pinkL[i]->display(currentTime);
+  //   blueL[i]->display(currentTime);
+  //   greenL[i]->display(currentTime);
+  // }
+  //
 
-    FastLED.show();
+  FastLED.show();
 }
 
 void setAll(CRGB color) {
@@ -135,4 +162,57 @@ void setAll(CRGB color) {
 
 void clear() {
   setAll(off);
+}
+
+CRGB readColor() {
+  uint16_t clear, red, green, blue;
+  float r, g, b, ratio;
+  uint32_t color;
+  CRGB c;
+
+  digitalWrite(SENSOR_LED_PIN, HIGH);
+  delay(200);
+  tcs.getRawData(&red, &green, &blue, &clear);
+  delay(200);
+  digitalWrite(SENSOR_LED_PIN, LOW);
+
+  r = red;
+  red = (r / clear) * 256;
+  //red = gammatable[red];
+  g = green;
+  green = (g / clear) * 256;
+  //green = gammatable[green];
+  b = blue;
+  blue = (b / clear) * 256;
+  //blue = gammatable[blue];
+
+  // Serial.print((int)clear, DEC);
+  // Serial.print(" ");
+  Serial.print(red, HEX);
+  Serial.print(" ");
+  Serial.print(green, HEX);
+  Serial.print(" ");
+  Serial.print(blue, HEX);
+  Serial.print(" ");
+
+  red = gammatable[red];
+  green = gammatable[green];
+  blue = gammatable[blue];
+
+  color = (red * 65536) + (green * 256) + blue;
+
+  Serial.print(red, HEX);
+  Serial.print(" ");
+  Serial.print(green, HEX);
+  Serial.print(" ");
+  Serial.print(blue, HEX);
+
+  Serial.print(" ");
+  Serial.print(color, HEX);
+
+  Serial.println();
+
+  c = color;
+  c.fadeLightBy(16);
+  return c;
 }
