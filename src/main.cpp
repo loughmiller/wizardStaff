@@ -3,12 +3,12 @@
 #include <AudioAnalyzer.h>
 #include <Wire.h>
 #include <Adafruit_TCS34725.h>
-#include "Visualization.h"
-#include "Streak.h"
-#include "Ladder.h"
-#include "Sparkle.h"
-#include "Pulse.h"
-#include "Frequency.h"
+#include <Visualization.h>
+#include <Streak.h>
+#include <Ladder.h>
+#include <Sparkle.h>
+#include <Pulse.h>
+#include <Frequency.h>
 
 #define NUM_LEDS 358
 #define ROWS 45
