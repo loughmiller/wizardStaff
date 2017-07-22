@@ -13,15 +13,15 @@
 #define NUM_LEDS 358
 #define ROWS 45
 #define COLUMNS 6
-#define SENSOR_ACTIVATE_PIN 51
-#define DISPLAY_LED_PIN 52
-#define SENSOR_LED_PIN 53
+#define SENSOR_ACTIVATE_PIN 0
+#define SENSOR_LED_PIN 16
+#define DISPLAY_LED_PIN 22
 
 CRGB leds[NUM_LEDS];
-CRGB off;
+CRGB off = 0x000000;
 
 void clear();
-void setAll();
+void setAll(CRGB color);
 CRGB readColor();
 
 #define NUM_STREAKS 8
@@ -61,7 +61,10 @@ byte gammatable[256];
 
 
 void setup() {
+  delay(2000);
   Serial.begin(9600);
+  Serial.println("setup started");
+
 
   // AUDIO STUFF
   Audio.Init();
@@ -89,11 +92,12 @@ void setup() {
 
     gammatable[i] = x;
     // Serial.println(gammatable[i]);
+
+    Serial.println("setup complete");
   }
 
   // DISPLAY STUFF
-  FastLED.setBrightness(64);
-  off = 0x000000;
+  FastLED.setBrightness(48);
   FastLED.addLeds<NEOPIXEL, DISPLAY_LED_PIN>(leds, NUM_LEDS).setCorrection( Typical8mmPixel );;
 
   clear();
@@ -123,18 +127,22 @@ void setup() {
 void loop() {
   CRGB color;
 
-  if (digitalRead(SENSOR_ACTIVATE_PIN) == HIGH) {
+  Serial.println(touchRead(A3));
+
+  if (touchRead(A3) > 1900) {
+    Serial.println('Read Color');
     color = readColor();
     for(unsigned int i=0; i<NUM_STREAKS; i++) {
       pinkS[i]->setColor(color);
     }
+    pulseHeadPiece->setColor(color);
   }
 
   unsigned long currentTime = millis();
 
   clear();
 
-  // pulseHeadPiece->display(currentTime);
+  pulseHeadPiece->display(currentTime);
 
   s1->display();
 
@@ -171,9 +179,9 @@ CRGB readColor() {
   CRGB c;
 
   digitalWrite(SENSOR_LED_PIN, HIGH);
-  delay(200);
+  delay(400);
   tcs.getRawData(&red, &green, &blue, &clear);
-  delay(200);
+  delay(400);
   digitalWrite(SENSOR_LED_PIN, LOW);
 
   r = red;
