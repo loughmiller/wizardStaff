@@ -1,14 +1,13 @@
 #include <Arduino.h>
 #include <FastLED.h>
-#include <AudioAnalyzer.h>
 #include <Wire.h>
 #include <Adafruit_TCS34725.h>
 #include <Visualization.h>
 #include <Streak.h>
 #include <Ladder.h>
 #include <Sparkle.h>
-#include <Pulse.h>
 #include <Frequency.h>
+#include <TeensyAudioFFT.h>
 
 #define NUM_LEDS 358
 #define ROWS 45
@@ -16,6 +15,8 @@
 #define SENSOR_ACTIVATE_PIN 0
 #define SENSOR_LED_PIN 16
 #define DISPLAY_LED_PIN 22
+
+const int AUDIO_INPUT_PIN = 14;         // Input ADC pin for audio data.
 
 CRGB leds[NUM_LEDS];
 CRGB off = 0x000000;
@@ -41,14 +42,9 @@ Ladder * greenL[NUM_STREAKS];
 Sparkle * s1;
 Sparkle * s2;
 
-Pulse * pulseHeadPiece;
-
 Frequency * freq;
 
 int active = 0;
-
-Analyzer Audio = Analyzer(4,5,0);//Strobe pin ->4  RST pin ->5 Analog Pin ->0
-//Analyzer Audio = Analyzer();//Strobe->4 RST->5 Analog->0
 
 int FreqVal[7];
 int MaxFreqVal[7];
@@ -59,18 +55,22 @@ Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS3472
 // our RGB -> eye-recognized gamma color
 byte gammatable[256];
 
+int decibleSampleTime = 1000;
+int lastDecibleSampleTime = 0;
+int maxDecibles = 0;
+int minDecibles = 200;
+int movingAvgMaxDecibles = 80;
+int movingAvgMinDecibles = 40;
+float movingAvgAlpha = 0.3;
 
 void setup() {
   delay(2000);
-  Serial.begin(9600);
+  Serial.begin(38400);
   Serial.println("setup started");
 
-
-  // AUDIO STUFF
-  Audio.Init();
-  for(int i=0;i<7;i++) {
-    MaxFreqVal[i] = 0;
-  }
+  // AUDIO setup
+  TeensyAudioFFTSetup(AUDIO_INPUT_PIN);
+  samplingBegin();
 
   // COLOR SENSOR
   pinMode(SENSOR_LED_PIN, OUTPUT);
@@ -119,15 +119,12 @@ void setup() {
   s1 = new Sparkle(1, NUM_LEDS, leds, blue, 201);
   //s2 = new Sparkle(COLUMNS, ROWS, leds, green, 421);
 
-  pulseHeadPiece = new Pulse(270, 88, leds, pink);
-
-  // freq = new Frequency(270, 88, leds, pink);
 }
 
 void loop() {
   CRGB color;
 
-  Serial.println(touchRead(A3));
+  // Serial.println(touchRead(A3));
 
   if (touchRead(A3) > 1900) {
     Serial.println('Read Color');
@@ -135,16 +132,41 @@ void loop() {
     for(unsigned int i=0; i<NUM_STREAKS; i++) {
       pinkS[i]->setColor(color);
     }
-    pulseHeadPiece->setColor(color);
   }
+
+  float intensity = readIntensity(2, 3);
 
   unsigned long currentTime = millis();
 
+  if (currentTime > (lastDecibleSampleTime + decibleSampleTime)) {
+    lastDecibleSampleTime = currentTime;
+    movingAvgMaxDecibles = (movingAvgAlpha * maxDecibles) +
+      ((1 - movingAvgAlpha) * movingAvgMaxDecibles);
+    movingAvgMinDecibles = (movingAvgAlpha * minDecibles) +
+      ((1 - movingAvgAlpha) * movingAvgMinDecibles);
+    maxDecibles = 0;
+    minDecibles = 200;
+    // Serial.print(movingAvgMinDecibles);
+    // Serial.print(" - ");
+    // Serial.println(movingAvgMaxDecibles);
+  }
+
+  maxDecibles = max(maxDecibles, intensity);
+  minDecibles = min(minDecibles, intensity);
+
   clear();
 
-  pulseHeadPiece->display(currentTime);
-
   s1->display();
+
+  float intesityP = intensity - (movingAvgMinDecibles * 1.3);
+  intesityP = intesityP < 0.0 ? 0.0 : intesityP;
+  intesityP /= (movingAvgMaxDecibles - (movingAvgMinDecibles * 1.3));
+
+  int intensityCount = min(88, int(intesityP * 88));
+  Serial.println(intensityCount);
+  for(int i=0; i<intensityCount; i++) {
+    leds[i+270] = pink;
+  }
 
   for(unsigned int i=0; i<NUM_STREAKS; i++) {
     pinkS[i]->display(currentTime);
