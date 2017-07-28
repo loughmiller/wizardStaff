@@ -61,7 +61,7 @@ int maxDecibles = 0;
 int minDecibles = 200;
 int movingAvgMaxDecibles = 80;
 int movingAvgMinDecibles = 40;
-float movingAvgAlpha = 0.3;
+float movingAvgAlpha = 0.2;
 
 void setup() {
   delay(2000);
@@ -158,14 +158,15 @@ void loop() {
 
   s1->display();
 
-  float intesityP = intensity - (movingAvgMinDecibles * 1.3);
+  float intesityP = intensity - (movingAvgMinDecibles * 1.2);
   intesityP = intesityP < 0.0 ? 0.0 : intesityP;
-  intesityP /= (movingAvgMaxDecibles - (movingAvgMinDecibles * 1.3));
+  intesityP /= (movingAvgMaxDecibles - (movingAvgMinDecibles * 1.2));
 
-  int intensityCount = min(88, int(intesityP * 88));
-  Serial.println(intensityCount);
+  int intensityCount = min(44, int(intesityP * 44));
+  // Serial.println(intensityCount);
   for(int i=0; i<intensityCount; i++) {
-    leds[i+270] = pink;
+    leds[i+314] = pink;
+    leds[314-i] = pink;
   }
 
   for(unsigned int i=0; i<NUM_STREAKS; i++) {
@@ -180,6 +181,8 @@ void loop() {
   //   greenL[i]->display(currentTime);
   // }
   //
+
+  // leds[314] = 0xFFFFFF;
 
   FastLED.show();
 }
