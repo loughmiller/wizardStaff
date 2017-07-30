@@ -25,7 +25,7 @@ void clear();
 void setAll(CRGB color);
 CRGB readColor();
 
-#define NUM_STREAKS 8
+#define NUM_STREAKS 7
 #define NUM_LADDERS 3
 
 CRGB pink = 0xFF0B20;
@@ -62,6 +62,7 @@ int minDecibles = 200;
 int movingAvgMaxDecibles = 80;
 int movingAvgMinDecibles = 40;
 float movingAvgAlpha = 0.2;
+
 
 void setup() {
   delay(2000);
@@ -116,7 +117,7 @@ void setup() {
     pinkL[i] = new Ladder(COLUMNS, ROWS, leds, pink);
   }
 
-  s1 = new Sparkle(1, NUM_LEDS, leds, blue, 201);
+  s1 = new Sparkle(1, NUM_LEDS, leds, pink, 201);
   //s2 = new Sparkle(COLUMNS, ROWS, leds, green, 421);
 
 }
@@ -156,23 +157,21 @@ void loop() {
 
   clear();
 
-  s1->display();
-
-  float intesityP = intensity - (movingAvgMinDecibles * 1.2);
+  float intesityP = intensity - (movingAvgMinDecibles * 1.1);
   intesityP = intesityP < 0.0 ? 0.0 : intesityP;
-  intesityP /= (movingAvgMaxDecibles - (movingAvgMinDecibles * 1.2));
+  intesityP /= (movingAvgMaxDecibles - (movingAvgMinDecibles * 1.1));
 
   int intensityCount = min(44, int(intesityP * 44));
   // Serial.println(intensityCount);
   for(int i=0; i<intensityCount; i++) {
-    leds[i+314] = pink;
-    leds[314-i] = pink;
+    leds[i+270] = pink;
+    leds[357-i] = pink;
   }
 
   for(unsigned int i=0; i<NUM_STREAKS; i++) {
-    pinkS[i]->display(currentTime);
-//      blueS[i]->display(currentTime);
-//      greenS[i]->display(currentTime);
+    // pinkS[i]->display(currentTime);
+    blueS[i]->display(currentTime);
+    greenS[i]->display(currentTime);
   }
   //
   // for(unsigned int i=0; i<NUM_STREAKS; i++) {
@@ -182,7 +181,10 @@ void loop() {
   // }
   //
 
-  // leds[314] = 0xFFFFFF;
+  // leds[314] = 0xFFFF00;
+  // leds[313] = 0xFFFF00;
+
+  s1->display();
 
   FastLED.show();
 }
