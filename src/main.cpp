@@ -69,6 +69,8 @@ void setup() {
   Serial.begin(38400);
   Serial.println("setup started");
 
+  randomSeed(analogRead(14));
+
   // AUDIO setup
   TeensyAudioFFTSetup(AUDIO_INPUT_PIN);
   samplingBegin();
