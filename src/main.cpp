@@ -25,11 +25,13 @@ void clear();
 void setAll(CRGB color);
 CRGB readColor();
 
-#define NUM_STREAKS 7
+#define NUM_STREAKS 5
 #define NUM_LADDERS 3
 
-CRGB pink = 0xFF0B20;
-CRGB blue = 0x0BFFDD;
+#define pinkHEX 0xFF0B20
+#define blueHEX 0x0BFFDD
+CRGB pink = pinkHEX;
+CRGB blue = blueHEX;
 CRGB green = 0xB9FF0B;
 
 Streak * pinkS[NUM_STREAKS];
@@ -110,7 +112,7 @@ void setup() {
     pinkL[i] = new Ladder(COLUMNS, ROWS, leds, pink);
   }
 
-  s1 = new Sparkle(1, NUM_LEDS, leds, pink, 201);
+  s1 = new Sparkle(1, NUM_LEDS, leds, 0xFFFFFF, 201);
   //s2 = new Sparkle(COLUMNS, ROWS, leds, green, 421);
 
 }
@@ -131,17 +133,31 @@ void loop() {
 
   unsigned long currentTime = millis();
 
-  float intensity = readRelativeIntensity(currentTime, 2, 3);
-
-  int intensityCount = min(44, int(intensity * 44));
-  // Serial.println(intensityCount);
-  for(int i=0; i<intensityCount; i++) {
-    leds[i+270] = pink;
-    leds[357-i] = pink;
+  CRGB reactiveBlue = blueHEX;
+  reactiveBlue.fadeLightBy(244);
+  for (int i=270; i<358; i++) {
+    leds[i] = reactiveBlue;
   }
 
+  float intensity = readRelativeIntensity(currentTime, 2, 3);
+  if (intensity > 0.85) {
+    intensity = (intensity - 0.5) / 0.5;
+    CRGB reactivePink = pinkHEX;
+    reactivePink.fadeLightBy((1-(intensity)) * 256);
+    for (int i=270; i<358; i++) {
+      leds[i] = reactivePink;
+    }
+  }
+  // int intensityCount = min(44, int(intensity * 44));
+  // for(int i=0; i<intensityCount; i++) {
+  //   leds[i+270] = pink;
+  //   leds[357-i] = pink;
+  // }
+
+
+
   for(unsigned int i=0; i<NUM_STREAKS; i++) {
-    // pinkS[i]->display(currentTime);
+    pinkS[i]->display(currentTime);
     blueS[i]->display(currentTime);
     greenS[i]->display(currentTime);
   }
