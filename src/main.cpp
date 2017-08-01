@@ -55,15 +55,6 @@ Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS3472
 // our RGB -> eye-recognized gamma color
 byte gammatable[256];
 
-int decibleSampleTime = 1000;
-int lastDecibleSampleTime = 0;
-int maxDecibles = 0;
-int minDecibles = 200;
-int movingAvgMaxDecibles = 80;
-int movingAvgMinDecibles = 40;
-float movingAvgAlpha = 0.2;
-
-
 void setup() {
   delay(2000);
   Serial.begin(38400);
@@ -126,44 +117,23 @@ void setup() {
 
 void loop() {
   CRGB color;
+  clear();  // this just sets the array, no reason it can't be at the top
 
   // Serial.println(touchRead(A3));
 
   if (touchRead(A3) > 1900) {
-    Serial.println('Read Color');
+    Serial.println("Read Color");
     color = readColor();
     for(unsigned int i=0; i<NUM_STREAKS; i++) {
       pinkS[i]->setColor(color);
     }
   }
 
-  float intensity = readIntensity(2, 3);
-
   unsigned long currentTime = millis();
 
-  if (currentTime > (lastDecibleSampleTime + decibleSampleTime)) {
-    lastDecibleSampleTime = currentTime;
-    movingAvgMaxDecibles = (movingAvgAlpha * maxDecibles) +
-      ((1 - movingAvgAlpha) * movingAvgMaxDecibles);
-    movingAvgMinDecibles = (movingAvgAlpha * minDecibles) +
-      ((1 - movingAvgAlpha) * movingAvgMinDecibles);
-    maxDecibles = 0;
-    minDecibles = 200;
-    // Serial.print(movingAvgMinDecibles);
-    // Serial.print(" - ");
-    // Serial.println(movingAvgMaxDecibles);
-  }
+  float intensity = readRelativeIntensity(currentTime, 2, 3);
 
-  maxDecibles = max(maxDecibles, intensity);
-  minDecibles = min(minDecibles, intensity);
-
-  clear();
-
-  float intesityP = intensity - (movingAvgMinDecibles * 1.1);
-  intesityP = intesityP < 0.0 ? 0.0 : intesityP;
-  intesityP /= (movingAvgMaxDecibles - (movingAvgMinDecibles * 1.1));
-
-  int intensityCount = min(44, int(intesityP * 44));
+  int intensityCount = min(44, int(intensity * 44));
   // Serial.println(intensityCount);
   for(int i=0; i<intensityCount; i++) {
     leds[i+270] = pink;
