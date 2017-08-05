@@ -29,6 +29,10 @@ void clear();
 void setAll(CRGB color);
 CRGB readColor();
 void displaySoundReactiveHeadpiece(unsigned long currentTime, CRGB offColor, CRGB onColor);
+uint8_t RGBtoHSV(float r, float g, float b);
+CRGB maximizeSaturation(float r, float g, float b);
+void defaultAllColors();
+void changeAllColors(CRGB color);
 
 #define NUM_STREAKS 5
 #define NUM_LADDERS 3
@@ -47,6 +51,9 @@ Sparkle * s1;
 Sparkle * s2;
 
 SoundReaction * soundReaction;
+
+#define STOLEN_COLOR_INTERVAL 20000
+unsigned long stolenColorDeadline = 0;
 
 // COLOR SENSOR
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
@@ -130,20 +137,20 @@ void loop() {
     color = readColor();
     setAll(color);
     FastLED.delay(2000);
-    for(unsigned int i=0; i<NUM_STREAKS; i++) {
-      pinkS[i]->setColor(color);
-      blueS[i]->setColor(color);
-      greenS[i]->setColor(color);
-      soundReaction->setOnColor(color);
-      soundReaction->setOffColor(off);
-    }
+
+    stolenColorDeadline = millis() + STOLEN_COLOR_INTERVAL;
+    changeAllColors(color);
   }
 
   unsigned long currentTime = millis();
 
+  if (stolenColorDeadline > 0 && currentTime > stolenColorDeadline) {
+    stolenColorDeadline = 0;
+    defaultAllColors();
+  }
+
   float intensity = readRelativeIntensity(currentTime, 2, 4);
   soundReaction->display(intensity);
-
 
   for(unsigned int i=0; i<NUM_STREAKS; i++) {
     pinkS[i]->display(currentTime);
@@ -166,10 +173,29 @@ void clear() {
   setAll(off);
 }
 
+void changeAllColors(CRGB color) {
+  for(unsigned int i=0; i<NUM_STREAKS; i++) {
+    pinkS[i]->setColor(color);
+    blueS[i]->setColor(color);
+    greenS[i]->setColor(color);
+  }
+  soundReaction->setOnColor(color);
+  soundReaction->setOffColor(off);
+}
+
+void defaultAllColors() {
+  for(unsigned int i=0; i<NUM_STREAKS; i++) {
+    pinkS[i]->setColor(pink);
+    blueS[i]->setColor(blue);
+    greenS[i]->setColor(green);
+  }
+  soundReaction->setOnColor(pink);
+  soundReaction->setOffColor(blue);
+}
+
 CRGB readColor() {
   uint16_t clear, red, green, blue;
-  float r, g, b, ratio;
-  uint32_t color;
+  float r, g, b;
   CRGB c;
 
   digitalWrite(SENSOR_LED_PIN, HIGH);
@@ -178,42 +204,36 @@ CRGB readColor() {
   delay(400);
   digitalWrite(SENSOR_LED_PIN, LOW);
 
-  r = red;
-  red = (r / clear) * 256;
-  //red = gammatable[red];
-  g = green;
-  green = (g / clear) * 256;
-  //green = gammatable[green];
-  b = blue;
-  blue = (b / clear) * 256;
-  //blue = gammatable[blue];
+  r = (float)red / (float)clear;
+  g = (float)green / (float)clear;
+  b = (float)blue / (float)clear;
 
-  // Serial.print((int)clear, DEC);
-  // Serial.print(" ");
-  Serial.print(red, HEX);
-  Serial.print(" ");
-  Serial.print(green, HEX);
-  Serial.print(" ");
-  Serial.print(blue, HEX);
-  Serial.print(" ");
+  return maximizeSaturation(r, g, b);
+}
 
-  red = gammatable[red];
-  green = gammatable[green];
-  blue = gammatable[blue];
+CRGB maximizeSaturation(float r, float g, float b) {
+  CRGB maxColor;
+  float min, max, delta, hue, hue255;
 
-  color = (red * 65536) + (green * 256) + blue;
+  min = min(r, min(g, b));
+  max = max(r, max(g, b));
+  delta = max - min;
 
-  Serial.print(red, HEX);
-  Serial.print(" ");
-  Serial.print(green, HEX);
-  Serial.print(" ");
-  Serial.print(blue, HEX);
+  if(r == max) {
+    hue = ( g - b ) / delta;
+  } else if (g == max) {
+    hue = 2 + (b - r) / delta;
+  } else {
+    hue = 4 + (r - g) / delta;
+  }
 
-  Serial.print(" ");
-  Serial.print(color, HEX);
+  hue *= 60; // degrees
+  if( hue < 0 ) {
+    hue += 360;
+  }
 
-  Serial.println();
+  hue255 = (uint8_t)((hue/360) * 255);
 
-  c = color;
-  return c;
+  maxColor = CHSV(hue255, 244, 255);
+  return maxColor;
 }
