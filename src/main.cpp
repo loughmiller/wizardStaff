@@ -29,10 +29,12 @@ void clear();
 void setAll(CRGB color);
 CRGB readColor();
 void displaySoundReactiveHeadpiece(unsigned long currentTime, CRGB offColor, CRGB onColor);
-uint8_t RGBtoHSV(float r, float g, float b);
 CRGB maximizeSaturation(float r, float g, float b);
 void defaultAllColors();
 void changeAllColors(CRGB color);
+void stealColorAnimation(CRGB color);
+void setHeadpieceColumn(uint8_t column, CRGB color);
+uint8_t calculateHeadpieceColumnLength(int column);
 
 #define NUM_STREAKS 5
 #define NUM_LADDERS 3
@@ -52,7 +54,7 @@ Sparkle * s2;
 
 SoundReaction * soundReaction;
 
-#define STOLEN_COLOR_INTERVAL 20000
+#define STOLEN_COLOR_INTERVAL 120000
 unsigned long stolenColorDeadline = 0;
 
 // COLOR SENSOR
@@ -72,6 +74,7 @@ void setup() {
   // SETUP LEDS
   FastLED.addLeds<NEOPIXEL, DISPLAY_LED_PIN>(leds, NUM_LEDS).setCorrection( 0xFFD08C );;
   FastLED.setBrightness(48);
+  FastLED.setDither(0);
 
   // INDICATE BOOT SEQUENCE
   for (int i=HEADPIECE_START; i<HEADPIECE_END; i++) {
@@ -135,9 +138,7 @@ void loop() {
   if (touchRead(A3) > 1900) {
     Serial.println("Read Color");
     color = readColor();
-    setAll(color);
-    FastLED.delay(2000);
-
+    stealColorAnimation(color);
     stolenColorDeadline = millis() + STOLEN_COLOR_INTERVAL;
     changeAllColors(color);
   }
@@ -199,9 +200,8 @@ CRGB readColor() {
   CRGB c;
 
   digitalWrite(SENSOR_LED_PIN, HIGH);
-  delay(400);
+  delay(200);
   tcs.getRawData(&red, &green, &blue, &clear);
-  delay(400);
   digitalWrite(SENSOR_LED_PIN, LOW);
 
   r = (float)red / (float)clear;
@@ -236,4 +236,55 @@ CRGB maximizeSaturation(float r, float g, float b) {
 
   maxColor = CHSV(hue255, 244, 255);
   return maxColor;
+}
+
+void stealColorAnimation(CRGB color) {
+  setAll(off);
+
+  setHeadpieceColumn(3, color);
+  FastLED.show();
+  delay(1000);
+
+  setHeadpieceColumn(2, color);
+  setHeadpieceColumn(4, color);
+  FastLED.show();
+  delay(500);
+
+  setHeadpieceColumn(1, color);
+  setHeadpieceColumn(5, color);
+  FastLED.show();
+  delay(250);
+
+  setHeadpieceColumn(0, color);
+  setHeadpieceColumn(6, color);
+  FastLED.show();
+  delay(125);
+
+  float d = 125;
+  for (uint16_t y=0; y<ROWS; y++) {
+    for (uint8_t x=0; x<COLUMNS; x++) {
+      leds[pinkS[0]->xy2Pos(x, y)] = color;
+    }
+    FastLED.show();
+    delay((int)(d *= 0.8));
+  }
+
+  Serial.println("done");
+}
+
+
+void setHeadpieceColumn(uint8_t column, CRGB color) {
+  uint16_t pos = HEADPIECE_START;
+
+  for (uint8_t i=0; i<column; i++) {
+    pos += calculateHeadpieceColumnLength(i);
+  }
+
+  for (uint16_t i=0; i<calculateHeadpieceColumnLength(column); i++) {
+    leds[i + pos] = color;
+  }
+}
+
+uint8_t calculateHeadpieceColumnLength(int column) {
+  return 16 - (abs(column - 3) * 2);
 }
