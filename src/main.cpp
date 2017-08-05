@@ -4,9 +4,8 @@
 #include <Adafruit_TCS34725.h>
 #include <Visualization.h>
 #include <Streak.h>
-#include <Ladder.h>
 #include <Sparkle.h>
-#include <Frequency.h>
+#include <SoundReaction.h>
 #include <TeensyAudioFFT.h>
 
 #define NUM_LEDS 358
@@ -47,12 +46,7 @@ Streak * greenS[NUM_STREAKS];
 Sparkle * s1;
 Sparkle * s2;
 
-Frequency * freq;
-
-int active = 0;
-
-int FreqVal[7];
-int MaxFreqVal[7];
+SoundReaction * soundReaction;
 
 // COLOR SENSOR
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
@@ -120,6 +114,8 @@ void setup() {
 
   s1 = new Sparkle(1, NUM_LEDS, leds, 0xFFFFFF, 201);
 
+  soundReaction = new SoundReaction(HEADPIECE_START, HEADPIECE_END, leds, pink, blue);
+
   Serial.println("setup complete");
 }
 
@@ -138,12 +134,16 @@ void loop() {
       pinkS[i]->setColor(color);
       blueS[i]->setColor(color);
       greenS[i]->setColor(color);
+      soundReaction->setOnColor(color);
+      soundReaction->setOffColor(off);
     }
   }
 
   unsigned long currentTime = millis();
 
-  displaySoundReactiveHeadpiece(currentTime, blue, pink);
+  float intensity = readRelativeIntensity(currentTime, 2, 4);
+  soundReaction->display(intensity);
+
 
   for(unsigned int i=0; i<NUM_STREAKS; i++) {
     pinkS[i]->display(currentTime);
@@ -216,21 +216,4 @@ CRGB readColor() {
 
   c = color;
   return c;
-}
-
-
-void displaySoundReactiveHeadpiece(unsigned long currentTime, CRGB offColor, CRGB onColor) {
-  float intensity = readRelativeIntensity(currentTime, 2, 4);
-  if (intensity > 0.85) {
-    intensity = (intensity - 0.5) / 0.5;
-    onColor.fadeLightBy((1-(intensity)) * 256);
-    for (int i=HEADPIECE_START; i<HEADPIECE_END; i++) {
-      leds[i] = onColor;
-    }
-  } else {
-    offColor.fadeLightBy(244);
-    for (int i=HEADPIECE_START; i<HEADPIECE_END; i++) {
-      leds[i] = offColor;
-    }
-  }
 }
