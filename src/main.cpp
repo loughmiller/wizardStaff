@@ -2,11 +2,14 @@
 #include <FastLED.h>
 #include <Wire.h>
 #include <Adafruit_TCS34725.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_MMA8451.h>
 #include <Visualization.h>
 #include <Streak.h>
 #include <Sparkle.h>
 #include <SoundReaction.h>
 #include <TeensyAudioFFT.h>
+
 
 #define NUM_LEDS 358
 #define ROWS 45
@@ -28,13 +31,13 @@ CRGB off = 0x000000;
 void clear();
 void setAll(CRGB color);
 CRGB readColor();
-void displaySoundReactiveHeadpiece(unsigned long currentTime, CRGB offColor, CRGB onColor);
 CRGB maximizeSaturation(float r, float g, float b);
 void defaultAllColors();
 void changeAllColors(CRGB color);
 void stealColorAnimation(CRGB color);
 void setHeadpieceColumn(uint8_t column, CRGB color);
 uint8_t calculateHeadpieceColumnLength(int column);
+void readAccelerometer();
 
 #define NUM_STREAKS 5
 #define NUM_LADDERS 3
@@ -54,14 +57,13 @@ Sparkle * s2;
 
 SoundReaction * soundReaction;
 
-#define STOLEN_COLOR_INTERVAL 120000
-unsigned long stolenColorDeadline = 0;
+bool colorStolen;
 
 // COLOR SENSOR
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
 
-// our RGB -> eye-recognized gamma color
-byte gammatable[256];
+// ACCELEROMETER
+Adafruit_MMA8451 mma = Adafruit_MMA8451();
 
 void setup() {
   delay(2000);
@@ -87,30 +89,30 @@ void setup() {
   pinMode(SENSOR_ACTIVATE_PIN, INPUT);
 
   if (tcs.begin()) {
-    Serial.println("Found sensor");
+    Serial.println("Found color sensor");
     digitalWrite(SENSOR_LED_PIN, LOW);
   } else {
-    Serial.println("No TCS34725 found ... check your connections");
-    for (int i=HEADPIECE_START; i<HEADPIECE_END; i++) {
-      leds[i] = 0x330000;
-    }
+    Serial.println("No color sensor found!");
+    setAll(0x330000);
     FastLED.show();
     while (1); // halt!
   }
 
+  // ACCELEROMETER SETUP
+  if (mma.begin()) {
+    Serial.println("Found accelerometer");
+    mma.setRange(MMA8451_RANGE_8_G);
+  } else {
+    Serial.println("No accelerometer found!");
+    setAll(0x30700);
+    FastLED.show();
+    while (1);
+  }
+  Serial.println("MMA8451 found!");
+
   // AUDIO setup
   TeensyAudioFFTSetup(AUDIO_INPUT_PIN);
   samplingBegin();
-
-  for (int i=0; i<256; i++) {
-    float x = i;
-    x /= 255;
-    x = pow(x, 2.5);
-    x *= 255;
-
-    gammatable[i] = x;
-    // Serial.println(gammatable[i]);
-  }
 
   // DISPLAY STUFF
   clear();
@@ -126,32 +128,47 @@ void setup() {
 
   soundReaction = new SoundReaction(HEADPIECE_START, HEADPIECE_END, leds, pink, blue);
 
+  colorStolen = false;
+
   Serial.println("setup complete");
 }
+
+int maxX = 0;
+int maxY = 0;
+int maxZ = 0;
 
 void loop() {
   CRGB color;
   clear();  // this just sets the array, no reason it can't be at the top
 
-  // Serial.println(touchRead(A3));
+  if (colorStolen) {
+    readAccelerometer();
+  }
 
+  // Serial.println(touchRead(A3));
   if (touchRead(A3) > 1900) {
     Serial.println("Read Color");
     color = readColor();
     stealColorAnimation(color);
-    stolenColorDeadline = millis() + STOLEN_COLOR_INTERVAL;
+    colorStolen = true;
     changeAllColors(color);
   }
 
   unsigned long currentTime = millis();
 
-  if (stolenColorDeadline > 0 && currentTime > stolenColorDeadline) {
-    stolenColorDeadline = 0;
-    defaultAllColors();
+  if (colorStolen) {
+    readAccelerometer();
   }
 
   float intensity = readRelativeIntensity(currentTime, 2, 4);
+  Serial.print(currentTime);
+  Serial.print(": ");
+  Serial.println(intensity);
   soundReaction->display(intensity);
+
+  if (colorStolen) {
+    readAccelerometer();
+  }
 
   for(unsigned int i=0; i<NUM_STREAKS; i++) {
     pinkS[i]->display(currentTime);
@@ -161,7 +178,29 @@ void loop() {
 
   s1->display();
 
+  if (colorStolen) {
+    readAccelerometer();
+  }
+
   FastLED.show();
+
+  if (colorStolen) {
+    readAccelerometer();
+  }
+
+  if (maxY > 5000) {
+    colorStolen = false;
+    defaultAllColors();
+
+    Serial.print("X:\t"); Serial.print(maxX);
+    Serial.print("\tY:\t"); Serial.print(maxY);
+    Serial.print("\tZ:\t"); Serial.print(maxZ);
+    Serial.println();
+
+    maxX = 0;
+    maxY = 0;
+    maxZ = 0;
+  }
 }
 
 void setAll(CRGB color) {
@@ -287,4 +326,12 @@ void setHeadpieceColumn(uint8_t column, CRGB color) {
 
 uint8_t calculateHeadpieceColumnLength(int column) {
   return 16 - (abs(column - 3) * 2);
+}
+
+void readAccelerometer() {
+  mma.read();
+
+  maxX = max(mma.x, maxX);
+  maxY = max(mma.y, maxY);
+  maxZ = max(mma.z, maxZ);
 }
