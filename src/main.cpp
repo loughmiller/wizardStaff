@@ -126,7 +126,9 @@ void setup() {
 
   s1 = new Sparkle(1, NUM_LEDS, leds, 0xFFFFFF, 201);
 
-  soundReaction = new SoundReaction(HEADPIECE_START, HEADPIECE_END, leds, pink, blue);
+  CRGB lowBlue = blue;
+  lowBlue.fadeLightBy(244);
+  soundReaction = new SoundReaction(HEADPIECE_START, HEADPIECE_END, leds, pink, lowBlue);
 
   colorStolen = false;
 
