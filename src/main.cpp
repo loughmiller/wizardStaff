@@ -8,6 +8,7 @@
 #include <Streak.h>
 #include <Sparkle.h>
 #include <SoundReaction.h>
+#include <Spectrum.h>
 #include <TeensyAudioFFT.h>
 
 
@@ -39,11 +40,17 @@ void setHeadpieceColumn(uint8_t column, CRGB color);
 uint8_t calculateHeadpieceColumnLength(int column);
 void readAccelerometer();
 
+uint16_t xy2Pos (uint16_t x, uint16_t y);
+
 #define NUM_STREAKS 5
 #define NUM_LADDERS 3
 
 #define pinkHEX 0xFF0B20
 #define blueHEX 0x0BFFDD
+
+uint8_t pinkHue = 240;
+uint8_t blueHue = 137;
+
 CRGB pink = pinkHEX;
 CRGB blue = blueHEX;
 CRGB green = 0xB9FF0B;
@@ -56,6 +63,11 @@ Sparkle * s1;
 Sparkle * s2;
 
 SoundReaction * soundReaction;
+
+Spectrum * spectrumTop;
+Spectrum * spectrumBottom;
+
+TeensyAudioFFT * taFFT;
 
 bool colorStolen;
 
@@ -113,6 +125,7 @@ void setup() {
   // AUDIO setup
   TeensyAudioFFTSetup(AUDIO_INPUT_PIN);
   samplingBegin();
+  taFFT = new TeensyAudioFFT();
 
   // DISPLAY STUFF
   clear();
@@ -129,6 +142,9 @@ void setup() {
   CRGB lowBlue = blue;
   lowBlue.fadeLightBy(244);
   soundReaction = new SoundReaction(HEADPIECE_START, HEADPIECE_END, leds, pink, lowBlue);
+
+  spectrumTop = new Spectrum(COLUMNS, ROWS, ROWS/2, true, leds, blueHue, 100);
+  spectrumBottom = new Spectrum(COLUMNS, ROWS, ROWS/2, false, leds, blueHue, 100);
 
   colorStolen = false;
 
@@ -162,21 +178,68 @@ void loop() {
     readAccelerometer();
   }
 
-  float intensity = readRelativeIntensity(currentTime, 2, 4);
-  Serial.print(currentTime);
-  Serial.print(": ");
-  Serial.println(intensity);
+  // HEADPIECE
+  taFFT->loop();
+  float intensity = readRelativeIntensity(currentTime, 2, 5);
+  // Serial.print(currentTime);
+  // Serial.print(": ");
+  // Serial.print(i);
+  // Serial.print(" | ");
+  // Serial.println(intensity);
   soundReaction->display(intensity);
+
+  Serial.println();
+
+  taFFT->updateRelativeIntensities(currentTime);
+  spectrumTop->display(taFFT->intensities);
+  spectrumBottom->display(taFFT->intensities);
+
+  //
+  // float rowIntensities[ROWS] = {0};
+  // uint8_t halfwayPoint = ROWS/2;
+  //
+  // for (uint16_t i=0; i<=halfwayPoint; i++) {
+  //   rowIntensities[halfwayPoint - i] = taFFT->intensities[i + 2];
+  //   rowIntensities[halfwayPoint + i] = taFFT->intensities[i + 2];
+  // }
+  //
+  // for (uint8_t y=0; y<ROWS; y++) {
+  //   float intensity = rowIntensities[y];
+  //   if (intensity < 0.5) {
+  //     continue;
+  //   }
+  //
+  //   intensity = (intensity - 0.5) * 2;
+  //   uint8_t travel = (pinkHue - blueHue) * intensity;
+  //   // uint8_t travel = 70 * intensity;
+  //
+  //   CHSV c = CHSV(blueHue + travel, 245, 255);
+  //
+  //   for (uint8_t x=0; x<COLUMNS; x++) {
+  //     leds[xy2Pos(x, y)] = c;
+  //   }
+  // }
+
+  // bool foo = false;
+  //
+  // if (currentTime > 10000) {
+  //   foo = true;
+  // }
+  //
+  // while (foo) {
+  //   // hang
+  // }
+
 
   if (colorStolen) {
     readAccelerometer();
   }
 
-  for(unsigned int i=0; i<NUM_STREAKS; i++) {
-    pinkS[i]->display(currentTime);
-    blueS[i]->display(currentTime);
-    greenS[i]->display(currentTime);
-  }
+  // for(unsigned int i=0; i<NUM_STREAKS; i++) {
+  //   pinkS[i]->display(currentTime);
+  //   blueS[i]->display(currentTime);
+  //   greenS[i]->display(currentTime);
+  // }
 
   s1->display();
 
@@ -190,7 +253,7 @@ void loop() {
     readAccelerometer();
   }
 
-  if (maxY > 5000) {
+  if (maxY > 6000) {
     colorStolen = false;
     defaultAllColors();
 
@@ -254,15 +317,15 @@ CRGB readColor() {
 
 CRGB maximizeSaturation(float r, float g, float b) {
   CRGB maxColor;
-  float min, max, delta, hue, hue255;
+  float minC, maxC, delta, hue, hue255;
 
-  min = min(r, min(g, b));
-  max = max(r, max(g, b));
-  delta = max - min;
+  minC = min(r, min(g, b));
+  maxC = max(r, max(g, b));
+  delta = maxC - minC;
 
-  if(r == max) {
+  if(r == maxC) {
     hue = ( g - b ) / delta;
-  } else if (g == max) {
+  } else if (g == maxC) {
     hue = 2 + (b - r) / delta;
   } else {
     hue = 4 + (r - g) / delta;
@@ -336,4 +399,16 @@ void readAccelerometer() {
   maxX = max(mma.x, maxX);
   maxY = max(mma.y, maxY);
   maxZ = max(mma.z, maxZ);
+}
+
+
+uint16_t xy2Pos(uint16_t x, uint16_t y) {
+  uint16_t pos = x * ROWS;
+  if (x % 2 == 0) {
+    pos = pos + y;
+  } else {
+    pos = pos + ((ROWS - 1) - y);
+  }
+
+  return pos;
 }
