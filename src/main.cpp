@@ -11,7 +11,6 @@
 #include <Spectrum.h>
 #include <TeensyAudioFFT.h>
 
-
 #define NUM_LEDS 358
 #define ROWS 45
 #define COLUMNS 6
@@ -27,36 +26,30 @@ CRGB off = 0x000000;
 #define HEADPIECE_START 270
 #define HEADPIECE_END 358
 
-
 // FUNTION DEFINITIONS
 void clear();
 void setAll(CRGB color);
-CRGB readColor();
-CRGB maximizeSaturation(float r, float g, float b);
-void defaultAllColors();
-void changeAllColors(CRGB color);
-void stealColorAnimation(CRGB color);
+uint8_t readHue();
+uint8_t calcHue(float r, float g, float b);
+void defaultAllHues();
+void changeAllHues(uint8_t hue);
+void stealColorAnimation(uint8_t hue);
 void setHeadpieceColumn(uint8_t column, CRGB color);
-uint8_t calculateHeadpieceColumnLength(int column);
+uint8_t calculateHeadpieceColumnLength(uint16_t column);
 void readAccelerometer();
 
-uint16_t xy2Pos (uint16_t x, uint16_t y);
+uint16_t xy2Pos(uint16_t x, uint16_t y);
 
-#define NUM_STREAKS 5
-#define NUM_LADDERS 3
+#define NUM_STREAKS 1
 
-#define pinkHEX 0xFF0B20
-#define blueHEX 0x0BFFDD
+#define SATURATION 244
 
 uint8_t pinkHue = 240;
 uint8_t blueHue = 137;
+uint8_t greenHue = 55;
 
-CRGB pink = pinkHEX;
-CRGB blue = blueHEX;
-CRGB green = 0xB9FF0B;
-
-Streak * pinkS[NUM_STREAKS];
-Streak * blueS[NUM_STREAKS];
+// Streak * pinkS[NUM_STREAKS];
+// Streak * blueS[NUM_STREAKS];
 Streak * greenS[NUM_STREAKS];
 
 Sparkle * s1;
@@ -120,31 +113,41 @@ void setup() {
     FastLED.show();
     while (1);
   }
-  Serial.println("MMA8451 found!");
 
   // AUDIO setup
   TeensyAudioFFTSetup(AUDIO_INPUT_PIN);
   samplingBegin();
   taFFT = new TeensyAudioFFT();
+  Serial.println("Audio Sampling Started");
 
   // DISPLAY STUFF
   clear();
+  Serial.println("cleared");
   FastLED.show();
+  Serial.println("clear shown");
 
   for(unsigned int i=0; i<NUM_STREAKS; i++) {
-    greenS[i] = new Streak(COLUMNS, ROWS, leds, green);
-    blueS[i] = new Streak(COLUMNS, ROWS, leds, blue);
-    pinkS[i] = new Streak(COLUMNS, ROWS, leds, pink);
+    greenS[i] = new Streak(COLUMNS, ROWS, greenHue, SATURATION, leds);
+    greenS[i]->setRandomHue(true);
+    greenS[i]->setIntervalMinMax(0, 1);
+    // blueS[i] = new Streak(COLUMNS, ROWS, blueHue, SATURATION, leds);
+    // pinkS[i] = new Streak(COLUMNS, ROWS, pinkHue, SATURATION, leds);
   }
 
-  s1 = new Sparkle(1, NUM_LEDS, leds, 0xFFFFFF, 201);
+  Serial.println("Streaks Setup");
 
-  CRGB lowBlue = blue;
-  lowBlue.fadeLightBy(244);
-  soundReaction = new SoundReaction(HEADPIECE_START, HEADPIECE_END, leds, pink, lowBlue);
+  s1 = new Sparkle(NUM_LEDS, 0, 0, leds, 201);
+  Serial.println("Sparkles!");
 
-  spectrumTop = new Spectrum(COLUMNS, ROWS, ROWS/2, true, leds, blueHue, 100);
-  spectrumBottom = new Spectrum(COLUMNS, ROWS, ROWS/2, false, leds, blueHue, 100);
+  soundReaction = new SoundReaction(HEADPIECE_START, HEADPIECE_END,
+    pinkHue, blueHue, SATURATION, leds);
+  Serial.println("Sound Reaction Setup");
+
+  spectrumTop = new Spectrum(COLUMNS, ROWS, ROWS/2,
+    blueHue, SATURATION, true, 100, leds);
+  spectrumBottom = new Spectrum(COLUMNS, ROWS, ROWS/2,
+    blueHue, SATURATION, false, 100, leds);
+  Serial.println("Spectrum Setup");
 
   colorStolen = false;
 
@@ -156,9 +159,9 @@ int maxY = 0;
 int maxZ = 0;
 
 void loop() {
-  CRGB color;
   clear();  // this just sets the array, no reason it can't be at the top
 
+  // we have to do this a lot so we don't miss events
   if (colorStolen) {
     readAccelerometer();
   }
@@ -166,14 +169,17 @@ void loop() {
   // Serial.println(touchRead(A3));
   if (touchRead(A3) > 1900) {
     Serial.println("Read Color");
-    color = readColor();
-    stealColorAnimation(color);
+    uint8_t hue = readHue();
+    stealColorAnimation(hue);
     colorStolen = true;
-    changeAllColors(color);
+    changeAllHues(hue);
   }
+
+//  Serial.println(spectrumTop->getHue());
 
   unsigned long currentTime = millis();
 
+  // we have to do this a lot so we don't miss events
   if (colorStolen) {
     readAccelerometer();
   }
@@ -183,66 +189,30 @@ void loop() {
   float intensity = readRelativeIntensity(currentTime, 2, 5);
   // Serial.print(currentTime);
   // Serial.print(": ");
-  // Serial.print(i);
-  // Serial.print(" | ");
   // Serial.println(intensity);
   soundReaction->display(intensity);
 
-  Serial.println();
+  // Serial.println();
 
   taFFT->updateRelativeIntensities(currentTime);
   spectrumTop->display(taFFT->intensities);
   spectrumBottom->display(taFFT->intensities);
 
-  //
-  // float rowIntensities[ROWS] = {0};
-  // uint8_t halfwayPoint = ROWS/2;
-  //
-  // for (uint16_t i=0; i<=halfwayPoint; i++) {
-  //   rowIntensities[halfwayPoint - i] = taFFT->intensities[i + 2];
-  //   rowIntensities[halfwayPoint + i] = taFFT->intensities[i + 2];
-  // }
-  //
-  // for (uint8_t y=0; y<ROWS; y++) {
-  //   float intensity = rowIntensities[y];
-  //   if (intensity < 0.5) {
-  //     continue;
-  //   }
-  //
-  //   intensity = (intensity - 0.5) * 2;
-  //   uint8_t travel = (pinkHue - blueHue) * intensity;
-  //   // uint8_t travel = 70 * intensity;
-  //
-  //   CHSV c = CHSV(blueHue + travel, 245, 255);
-  //
-  //   for (uint8_t x=0; x<COLUMNS; x++) {
-  //     leds[xy2Pos(x, y)] = c;
-  //   }
-  // }
-
-  // bool foo = false;
-  //
-  // if (currentTime > 10000) {
-  //   foo = true;
-  // }
-  //
-  // while (foo) {
-  //   // hang
-  // }
-
-
+  // we have to do this a lot so we don't miss events
   if (colorStolen) {
     readAccelerometer();
   }
 
-  // for(unsigned int i=0; i<NUM_STREAKS; i++) {
-  //   pinkS[i]->display(currentTime);
-  //   blueS[i]->display(currentTime);
-  //   greenS[i]->display(currentTime);
-  // }
+  for(unsigned int i=0; i<NUM_STREAKS; i++) {
+    // pinkS[i]->display(currentTime);
+    // blueS[i]->display(currentTime);
+    greenS[i]->display(currentTime);
+
+  }
 
   s1->display();
 
+  // we have to do this a lot so we don't miss events
   if (colorStolen) {
     readAccelerometer();
   }
@@ -255,7 +225,7 @@ void loop() {
 
   if (maxY > 6000) {
     colorStolen = false;
-    defaultAllColors();
+    defaultAllHues();
 
     Serial.print("X:\t"); Serial.print(maxX);
     Serial.print("\tY:\t"); Serial.print(maxY);
@@ -269,7 +239,9 @@ void loop() {
 }
 
 void setAll(CRGB color) {
+//  Serial.println("setAll");
   for (int i=0; i<NUM_LEDS; i++) {
+//    Serial.println(i);
     leds[i] = color;
   }
 }
@@ -278,27 +250,39 @@ void clear() {
   setAll(off);
 }
 
-void changeAllColors(CRGB color) {
+void changeAllHues(uint8_t hue) {
   for(unsigned int i=0; i<NUM_STREAKS; i++) {
-    pinkS[i]->setColor(color);
-    blueS[i]->setColor(color);
-    greenS[i]->setColor(color);
+    // pinkS[i]->setHue(hue);
+    // blueS[i]->setHue(hue);
+    greenS[i]->setHue(hue);
   }
-  soundReaction->setOnColor(color);
-  soundReaction->setOffColor(off);
+
+  soundReaction->setOnHue(hue);
+  soundReaction->setOffHue(hue);
+
+  spectrumTop->setHue(hue);
+  spectrumTop->setTravel(0);
+  spectrumBottom->setHue(hue);
+  spectrumBottom->setTravel(0);
 }
 
-void defaultAllColors() {
+void defaultAllHues() {
   for(unsigned int i=0; i<NUM_STREAKS; i++) {
-    pinkS[i]->setColor(pink);
-    blueS[i]->setColor(blue);
-    greenS[i]->setColor(green);
+    // pinkS[i]->setHue(pinkHue);
+    // blueS[i]->setHue(blueHue);
+    greenS[i]->setHue(greenHue);
   }
-  soundReaction->setOnColor(pink);
-  soundReaction->setOffColor(blue);
+
+  soundReaction->setOnHue(pinkHue);
+  soundReaction->setOffHue(blueHue);
+
+  spectrumTop->setHue(blueHue);
+  spectrumTop->setTravel(100);
+  spectrumBottom->setHue(blueHue);
+  spectrumBottom->setTravel(100);
 }
 
-CRGB readColor() {
+uint8_t readHue() {
   uint16_t clear, red, green, blue;
   float r, g, b;
   CRGB c;
@@ -312,10 +296,10 @@ CRGB readColor() {
   g = (float)green / (float)clear;
   b = (float)blue / (float)clear;
 
-  return maximizeSaturation(r, g, b);
+  return calcHue(r, g, b);
 }
 
-CRGB maximizeSaturation(float r, float g, float b) {
+uint8_t calcHue(float r, float g, float b) {
   CRGB maxColor;
   float minC, maxC, delta, hue, hue255;
 
@@ -336,13 +320,11 @@ CRGB maximizeSaturation(float r, float g, float b) {
     hue += 360;
   }
 
-  hue255 = (uint8_t)((hue/360) * 255);
-
-  maxColor = CHSV(hue255, 244, 255);
-  return maxColor;
+  return (uint8_t)((hue/360) * 255);
 }
 
-void stealColorAnimation(CRGB color) {
+void stealColorAnimation(uint8_t hue) {
+  CRGB color = CHSV(hue, SATURATION, 255);
   setAll(off);
 
   setHeadpieceColumn(3, color);
@@ -367,7 +349,7 @@ void stealColorAnimation(CRGB color) {
   float d = 125;
   for (uint16_t y=0; y<ROWS; y++) {
     for (uint8_t x=0; x<COLUMNS; x++) {
-      leds[pinkS[0]->xy2Pos(x, y)] = color;
+      leds[xy2Pos(x, y)] = color;
     }
     FastLED.show();
     delay((int)(d *= 0.8));
@@ -389,7 +371,7 @@ void setHeadpieceColumn(uint8_t column, CRGB color) {
   }
 }
 
-uint8_t calculateHeadpieceColumnLength(int column) {
+uint8_t calculateHeadpieceColumnLength(uint16_t column) {
   return 16 - (abs(column - 3) * 2);
 }
 
