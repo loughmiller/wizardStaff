@@ -40,21 +40,14 @@ void readAccelerometer();
 
 uint16_t xy2Pos(uint16_t x, uint16_t y);
 
-#define NUM_STREAKS 1
-
 #define SATURATION 244
 
 uint8_t pinkHue = 240;
 uint8_t blueHue = 137;
 uint8_t greenHue = 55;
 
-// Streak * pinkS[NUM_STREAKS];
-// Streak * blueS[NUM_STREAKS];
-Streak * greenS[NUM_STREAKS];
-
-Sparkle * s1;
-Sparkle * s2;
-
+Streak * streak;
+Sparkle * sparkle;
 SoundReaction * soundReaction;
 
 Spectrum * spectrumTop;
@@ -122,21 +115,16 @@ void setup() {
 
   // DISPLAY STUFF
   clear();
-  Serial.println("cleared");
   FastLED.show();
-  Serial.println("clear shown");
+  Serial.println("cleared");
 
-  for(unsigned int i=0; i<NUM_STREAKS; i++) {
-    greenS[i] = new Streak(COLUMNS, ROWS, greenHue, SATURATION, leds);
-    greenS[i]->setRandomHue(true);
-    greenS[i]->setIntervalMinMax(0, 1);
-    // blueS[i] = new Streak(COLUMNS, ROWS, blueHue, SATURATION, leds);
-    // pinkS[i] = new Streak(COLUMNS, ROWS, pinkHue, SATURATION, leds);
-  }
+  streak = new Streak(COLUMNS, ROWS, greenHue, SATURATION, leds);
+  streak->setRandomHue(true);
+  streak->setIntervalMinMax(0, 1);
 
   Serial.println("Streaks Setup");
 
-  s1 = new Sparkle(NUM_LEDS, 0, 0, leds, 201);
+  sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 201);
   Serial.println("Sparkles!");
 
   soundReaction = new SoundReaction(HEADPIECE_START, HEADPIECE_END,
@@ -193,7 +181,7 @@ void loop() {
   soundReaction->display(intensity);
 
   // Serial.println();
-
+  streak->display(currentTime);
   taFFT->updateRelativeIntensities(currentTime);
   spectrumTop->display(taFFT->intensities);
   spectrumBottom->display(taFFT->intensities);
@@ -203,14 +191,7 @@ void loop() {
     readAccelerometer();
   }
 
-  for(unsigned int i=0; i<NUM_STREAKS; i++) {
-    // pinkS[i]->display(currentTime);
-    // blueS[i]->display(currentTime);
-    greenS[i]->display(currentTime);
-
-  }
-
-  s1->display();
+  sparkle->display();
 
   // we have to do this a lot so we don't miss events
   if (colorStolen) {
@@ -251,11 +232,7 @@ void clear() {
 }
 
 void changeAllHues(uint8_t hue) {
-  for(unsigned int i=0; i<NUM_STREAKS; i++) {
-    // pinkS[i]->setHue(hue);
-    // blueS[i]->setHue(hue);
-    greenS[i]->setHue(hue);
-  }
+  streak->setHue(hue);
 
   soundReaction->setOnHue(hue);
   soundReaction->setOffHue(hue);
@@ -267,11 +244,7 @@ void changeAllHues(uint8_t hue) {
 }
 
 void defaultAllHues() {
-  for(unsigned int i=0; i<NUM_STREAKS; i++) {
-    // pinkS[i]->setHue(pinkHue);
-    // blueS[i]->setHue(blueHue);
-    greenS[i]->setHue(greenHue);
-  }
+  streak->setHue(greenHue);
 
   soundReaction->setOnHue(pinkHue);
   soundReaction->setOffHue(blueHue);
