@@ -204,7 +204,7 @@ void loop() {
     readAccelerometer();
   }
 
-  if (maxY > 6000) {
+  if (maxY > 3000) {
     colorStolen = false;
     defaultAllHues();
 
