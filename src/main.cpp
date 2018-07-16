@@ -158,6 +158,7 @@ void loop() {
   if (touchRead(A3) > 1900) {
     Serial.println("Read Color");
     uint8_t hue = readHue();
+    // Serial.println(hue);
     stealColorAnimation(hue);
     colorStolen = true;
     changeAllHues(hue);
@@ -328,7 +329,7 @@ void stealColorAnimation(uint8_t hue) {
     delay((int)(d *= 0.8));
   }
 
-  Serial.println("done");
+  // Serial.println("StealColorAnimation Complete.");
 }
 
 
