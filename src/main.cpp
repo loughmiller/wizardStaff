@@ -11,20 +11,17 @@
 #include <Spectrum.h>
 #include <TeensyAudioFFT.h>
 
-#define NUM_LEDS 358
-#define ROWS 45
-#define COLUMNS 6
-#define SENSOR_ACTIVATE_PIN 0
+#define NUM_LEDS 82
+#define ROWS 82
+#define COLUMNS 1
+#define SENSOR_ACTIVATE_PIN A3
 #define SENSOR_LED_PIN 16
 #define DISPLAY_LED_PIN 23
 
-const int AUDIO_INPUT_PIN = 14;         // Input ADC pin for audio data.
+const int AUDIO_INPUT_PIN = A1;         // Input ADC pin for audio data.
 
 CRGB leds[NUM_LEDS];
 CRGB off = 0x000000;
-
-#define HEADPIECE_START 270
-#define HEADPIECE_END 358
 
 // FUNTION DEFINITIONS
 void clear();
@@ -35,7 +32,6 @@ void defaultAllHues();
 void changeAllHues(uint8_t hue);
 void stealColorAnimation(uint8_t hue);
 void setHeadpieceColumn(uint8_t column, CRGB color);
-uint8_t calculateHeadpieceColumnLength(uint16_t column);
 void readAccelerometer();
 
 uint16_t xy2Pos(uint16_t x, uint16_t y);
@@ -77,15 +73,15 @@ void setup() {
   FastLED.setDither(0);
 
   // INDICATE BOOT SEQUENCE
-  for (int i=HEADPIECE_START; i<HEADPIECE_END; i++) {
-    leds[i] = 0x0F0F0F;
-  }
+  setAll(0x004400);
   FastLED.show();
+  FastLED.delay(1000);
 
   // COLOR SENSOR
   pinMode(SENSOR_LED_PIN, OUTPUT);
   pinMode(SENSOR_ACTIVATE_PIN, INPUT);
 
+  // COLOR SENSOR SETUP
   if (tcs.begin()) {
     Serial.println("Found color sensor");
     digitalWrite(SENSOR_LED_PIN, LOW);
@@ -96,16 +92,16 @@ void setup() {
     while (1); // halt!
   }
 
-  // ACCELEROMETER SETUP
-  if (mma.begin()) {
-    Serial.println("Found accelerometer");
-    mma.setRange(MMA8451_RANGE_8_G);
-  } else {
-    Serial.println("No accelerometer found!");
-    setAll(0x30700);
-    FastLED.show();
-    while (1);
-  }
+  // // ACCELEROMETER SETUP
+  // if (mma.begin()) {
+  //   Serial.println("Found accelerometer");
+  //   mma.setRange(MMA8451_RANGE_8_G);
+  // } else {
+  //   Serial.println("No accelerometer found!");
+  //   setAll(0x30700);
+  //   FastLED.show();
+  //   while (1);
+  // }
 
   // AUDIO setup
   TeensyAudioFFTSetup(AUDIO_INPUT_PIN);
@@ -120,16 +116,12 @@ void setup() {
 
   streak = new Streak(COLUMNS, ROWS, greenHue, SATURATION, leds);
   streak->setRandomHue(true);
-  streak->setIntervalMinMax(0, 1);
+  streak->setIntervalMinMax(5, 30);
 
   Serial.println("Streaks Setup");
 
   sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 201);
   Serial.println("Sparkles!");
-
-  soundReaction = new SoundReaction(HEADPIECE_START, HEADPIECE_END,
-    pinkHue, blueHue, SATURATION, leds);
-  Serial.println("Sound Reaction Setup");
 
   spectrumTop = new Spectrum(COLUMNS, ROWS, ROWS/2,
     blueHue, SATURATION, true, 100, leds);
@@ -149,75 +141,44 @@ int maxZ = 0;
 void loop() {
   clear();  // this just sets the array, no reason it can't be at the top
 
-  // we have to do this a lot so we don't miss events
-  if (colorStolen) {
-    readAccelerometer();
-  }
-
-  // Serial.println(touchRead(A3));
-  if (touchRead(A3) > 1900) {
+  // Serial.println(touchRead(SENSOR_ACTIVATE_PIN));
+  if (touchRead(SENSOR_ACTIVATE_PIN) > 1900) {
     Serial.println("Read Color");
     uint8_t hue = readHue();
     // Serial.println(hue);
-    stealColorAnimation(hue);
+    // stealColorAnimation(hue);
     colorStolen = true;
     changeAllHues(hue);
   }
 
 //  Serial.println(spectrumTop->getHue());
-
   unsigned long currentTime = millis();
-
-  // we have to do this a lot so we don't miss events
-  if (colorStolen) {
-    readAccelerometer();
-  }
-
-  // HEADPIECE
-  taFFT->loop();
-  float intensity = readRelativeIntensity(currentTime, 2, 5);
-  // Serial.print(currentTime);
-  // Serial.print(": ");
-  // Serial.println(intensity);
-  soundReaction->display(intensity);
 
   // Serial.println();
   streak->display(currentTime);
+
+  taFFT->loop();
   taFFT->updateRelativeIntensities(currentTime);
   spectrumTop->display(taFFT->intensities);
   spectrumBottom->display(taFFT->intensities);
 
-  // we have to do this a lot so we don't miss events
-  if (colorStolen) {
-    readAccelerometer();
-  }
-
   sparkle->display();
-
-  // we have to do this a lot so we don't miss events
-  if (colorStolen) {
-    readAccelerometer();
-  }
 
   FastLED.show();
 
-  if (colorStolen) {
-    readAccelerometer();
-  }
-
-  if (maxY > 3000) {
-    colorStolen = false;
-    defaultAllHues();
-
-    Serial.print("X:\t"); Serial.print(maxX);
-    Serial.print("\tY:\t"); Serial.print(maxY);
-    Serial.print("\tZ:\t"); Serial.print(maxZ);
-    Serial.println();
-
-    maxX = 0;
-    maxY = 0;
-    maxZ = 0;
-  }
+  // if (maxY > 3000) {
+  //   colorStolen = false;
+  //   defaultAllHues();
+  //
+  //   Serial.print("X:\t"); Serial.print(maxX);
+  //   Serial.print("\tY:\t"); Serial.print(maxY);
+  //   Serial.print("\tZ:\t"); Serial.print(maxZ);
+  //   Serial.println();
+  //
+  //   maxX = 0;
+  //   maxY = 0;
+  //   maxZ = 0;
+  // }
 }
 
 void setAll(CRGB color) {
@@ -233,10 +194,8 @@ void clear() {
 }
 
 void changeAllHues(uint8_t hue) {
+  streak->setRandomHue(false);
   streak->setHue(hue);
-
-  soundReaction->setOnHue(hue);
-  soundReaction->setOffHue(hue);
 
   spectrumTop->setHue(hue);
   spectrumTop->setTravel(0);
@@ -245,10 +204,7 @@ void changeAllHues(uint8_t hue) {
 }
 
 void defaultAllHues() {
-  streak->setHue(greenHue);
-
-  soundReaction->setOnHue(pinkHue);
-  soundReaction->setOffHue(blueHue);
+  streak->setRandomHue(true);
 
   spectrumTop->setHue(blueHue);
   spectrumTop->setTravel(100);
@@ -301,25 +257,6 @@ void stealColorAnimation(uint8_t hue) {
   CRGB color = CHSV(hue, SATURATION, 255);
   setAll(off);
 
-  setHeadpieceColumn(3, color);
-  FastLED.show();
-  delay(1000);
-
-  setHeadpieceColumn(2, color);
-  setHeadpieceColumn(4, color);
-  FastLED.show();
-  delay(500);
-
-  setHeadpieceColumn(1, color);
-  setHeadpieceColumn(5, color);
-  FastLED.show();
-  delay(250);
-
-  setHeadpieceColumn(0, color);
-  setHeadpieceColumn(6, color);
-  FastLED.show();
-  delay(125);
-
   float d = 125;
   for (uint16_t y=0; y<ROWS; y++) {
     for (uint8_t x=0; x<COLUMNS; x++) {
@@ -330,23 +267,6 @@ void stealColorAnimation(uint8_t hue) {
   }
 
   // Serial.println("StealColorAnimation Complete.");
-}
-
-
-void setHeadpieceColumn(uint8_t column, CRGB color) {
-  uint16_t pos = HEADPIECE_START;
-
-  for (uint8_t i=0; i<column; i++) {
-    pos += calculateHeadpieceColumnLength(i);
-  }
-
-  for (uint16_t i=0; i<calculateHeadpieceColumnLength(column); i++) {
-    leds[i + pos] = color;
-  }
-}
-
-uint8_t calculateHeadpieceColumnLength(uint16_t column) {
-  return 16 - (abs(column - 3) * 2);
 }
 
 void readAccelerometer() {
