@@ -69,7 +69,8 @@ void setup() {
 
   // SETUP LEDS
   FastLED.addLeds<NEOPIXEL, DISPLAY_LED_PIN>(leds, NUM_LEDS).setCorrection( 0xFFD08C );;
-  FastLED.setBrightness(48);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 5000);
+//  FastLED.setBrightness(48);
   FastLED.setDither(0);
 
   // INDICATE BOOT SEQUENCE
