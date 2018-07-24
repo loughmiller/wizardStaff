@@ -238,14 +238,6 @@ void stealColorAnimation(uint8_t hue) {
   // Serial.println("StealColorAnimation Complete.");
 }
 
-void readAccelerometer() {
-  mma.read();
-
-  maxX = max(mma.x, maxX);
-  maxY = max(mma.y, maxY);
-  maxZ = max(mma.z, maxZ);
-}
-
 
 uint16_t xy2Pos(uint16_t x, uint16_t y) {
   uint16_t pos = x * ROWS;
