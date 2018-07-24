@@ -70,7 +70,6 @@ void setup() {
   // SETUP LEDS
   FastLED.addLeds<NEOPIXEL, DISPLAY_LED_PIN>(leds, NUM_LEDS).setCorrection( 0xFFD08C );;
   FastLED.setMaxPowerInVoltsAndMilliamps(5, 5000);
-//  FastLED.setBrightness(48);
   FastLED.setDither(0);
 
   // INDICATE BOOT SEQUENCE
@@ -92,17 +91,6 @@ void setup() {
     FastLED.show();
     while (1); // halt!
   }
-
-  // // ACCELEROMETER SETUP
-  // if (mma.begin()) {
-  //   Serial.println("Found accelerometer");
-  //   mma.setRange(MMA8451_RANGE_8_G);
-  // } else {
-  //   Serial.println("No accelerometer found!");
-  //   setAll(0x30700);
-  //   FastLED.show();
-  //   while (1);
-  // }
 
   // AUDIO setup
   TeensyAudioFFTSetup(AUDIO_INPUT_PIN);
@@ -135,10 +123,6 @@ void setup() {
   Serial.println("setup complete");
 }
 
-int maxX = 0;
-int maxY = 0;
-int maxZ = 0;
-
 void loop() {
   clear();  // this just sets the array, no reason it can't be at the top
 
@@ -152,7 +136,7 @@ void loop() {
     changeAllHues(hue);
   }
 
-//  Serial.println(spectrumTop->getHue());
+  //  Serial.println(spectrumTop->getHue());
   unsigned long currentTime = millis();
 
   // Serial.println();
@@ -166,26 +150,10 @@ void loop() {
   sparkle->display();
 
   FastLED.show();
-
-  // if (maxY > 3000) {
-  //   colorStolen = false;
-  //   defaultAllHues();
-  //
-  //   Serial.print("X:\t"); Serial.print(maxX);
-  //   Serial.print("\tY:\t"); Serial.print(maxY);
-  //   Serial.print("\tZ:\t"); Serial.print(maxZ);
-  //   Serial.println();
-  //
-  //   maxX = 0;
-  //   maxY = 0;
-  //   maxZ = 0;
-  // }
 }
 
 void setAll(CRGB color) {
-//  Serial.println("setAll");
   for (int i=0; i<NUM_LEDS; i++) {
-//    Serial.println(i);
     leds[i] = color;
   }
 }
