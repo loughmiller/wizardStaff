@@ -11,9 +11,9 @@
 #include <Spectrum.h>
 #include <TeensyAudioFFT.h>
 
-#define NUM_LEDS 82
-#define ROWS 82
-#define COLUMNS 1
+#define ROWS 164
+#define COLUMNS 8
+#define NUM_LEDS ROWS*COLUMNS
 #define SENSOR_ACTIVATE_PIN A3
 #define SENSOR_LED_PIN 16
 #define DISPLAY_LED_PIN 23
@@ -105,11 +105,11 @@ void setup() {
 
   streak = new Streak(COLUMNS, ROWS, greenHue, SATURATION, leds);
   streak->setRandomHue(true);
-  streak->setIntervalMinMax(5, 30);
+  streak->setIntervalMinMax(0, 10);
 
   Serial.println("Streaks Setup");
 
-  sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 201);
+  sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 801);
   Serial.println("Sparkles!");
 
   spectrumTop = new Spectrum(COLUMNS, ROWS, ROWS/2,
