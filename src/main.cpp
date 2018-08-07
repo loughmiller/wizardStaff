@@ -16,7 +16,12 @@
 #define NUM_LEDS ROWS*COLUMNS
 #define SENSOR_ACTIVATE_PIN A3
 #define SENSOR_LED_PIN 16
-#define DISPLAY_LED_PIN 23
+#define DISPLAY_LED_PIN 3
+#define BATTERY_PIN A9
+
+#define analogRatio 310.3
+#define batterySlope 0.0045
+#define batteryIntercept -3.14
 
 const int AUDIO_INPUT_PIN = A1;         // Input ADC pin for audio data.
 
@@ -37,6 +42,9 @@ void readAccelerometer();
 uint16_t xy2Pos(uint16_t x, uint16_t y);
 
 #define SATURATION 244
+
+uint16_t batteryReading = 923;
+unsigned long batteryTimestamp = 0;
 
 uint8_t pinkHue = 240;
 uint8_t blueHue = 137;
@@ -138,6 +146,22 @@ void loop() {
 
   //  Serial.println(spectrumTop->getHue());
   unsigned long currentTime = millis();
+
+  // BATTERY READ
+  if (currentTime > batteryTimestamp + 30000) {
+    batteryReading = analogRead(BATTERY_PIN);
+    batteryTimestamp = currentTime;
+    Serial.print("raw: ");
+    Serial.println(batteryReading);
+
+    float dividedVoltage = (float)batteryReading / analogRatio;
+    Serial.print("dividedVoltage: ");
+    Serial.println(dividedVoltage);
+
+    float batteryPercentage = ((float)batteryReading * batterySlope) + batteryIntercept;
+    Serial.print("percentage: ");
+    Serial.println(batteryPercentage);
+  }
 
   // Serial.println();
   streak->display(currentTime);
