@@ -19,9 +19,9 @@
 #define DISPLAY_LED_PIN 3
 #define BATTERY_PIN A9
 
-#define analogRatio 310.3
-#define batterySlope 0.0045
-#define batteryIntercept -3.14
+#define ANALOG_RATIO 310.3
+#define BATTERY_SLOPE 0.0045
+#define BATTERY_INTERCEPT -3.14
 
 const int AUDIO_INPUT_PIN = A1;         // Input ADC pin for audio data.
 
@@ -154,11 +154,11 @@ void loop() {
     Serial.print("raw: ");
     Serial.println(batteryReading);
 
-    float dividedVoltage = (float)batteryReading / analogRatio;
+    float dividedVoltage = (float)batteryReading / ANALOG_RATIO;
     Serial.print("dividedVoltage: ");
     Serial.println(dividedVoltage);
 
-    float batteryPercentage = ((float)batteryReading * batterySlope) + batteryIntercept;
+    float batteryPercentage = ((float)batteryReading * BATTERY_SLOPE) + BATTERY_INTERCEPT;
     Serial.print("percentage: ");
     Serial.println(batteryPercentage);
   }
