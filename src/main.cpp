@@ -11,19 +11,21 @@
 #include <Spectrum.h>
 #include <TeensyAudioFFT.h>
 
-#define ROWS 164
-#define COLUMNS 8
+#define ROWS 82
+#define COLUMNS 1
 #define NUM_LEDS ROWS*COLUMNS
-#define SENSOR_ACTIVATE_PIN A3
+#define STEAL_COLOR_PIN 0
+#define CLEAR_COLOR_PIN 1
 #define SENSOR_LED_PIN 16
-#define DISPLAY_LED_PIN 3
-#define BATTERY_PIN A9
+#define DISPLAY_LED_PIN 11
+#define BATTERY_PIN A7
+#define BRIGHTNESS_CONTROL 23
+#define AUDIO_INPUT_PIN = A8;         // Input pin for audio data.
 
 #define ANALOG_RATIO 310.3
 #define BATTERY_SLOPE 0.0045
 #define BATTERY_INTERCEPT -3.14
 
-const int AUDIO_INPUT_PIN = A1;         // Input ADC pin for audio data.
 
 CRGB leds[NUM_LEDS];
 CRGB off = 0x000000;
@@ -87,7 +89,9 @@ void setup() {
 
   // COLOR SENSOR
   pinMode(SENSOR_LED_PIN, OUTPUT);
-  pinMode(SENSOR_ACTIVATE_PIN, INPUT);
+  pinMode(STEAL_COLOR_PIN, INPUT);
+  pinMode(CLEAR_COLOR_PIN, INPUT);
+  pinMode(BRIGHTNESS_CONTROL, INPUT);
 
   // COLOR SENSOR SETUP
   if (tcs.begin()) {
@@ -134,8 +138,8 @@ void setup() {
 void loop() {
   clear();  // this just sets the array, no reason it can't be at the top
 
-  // Serial.println(touchRead(SENSOR_ACTIVATE_PIN));
-  if (touchRead(SENSOR_ACTIVATE_PIN) > 1900) {
+  // Serial.println(touchRead(STEAL_COLOR_PIN));
+  if (touchRead(STEAL_COLOR_PIN) > 1900) {
     Serial.println("Read Color");
     uint8_t hue = readHue();
     // Serial.println(hue);
