@@ -11,20 +11,22 @@
 #include <Spectrum.h>
 #include <TeensyAudioFFT.h>
 
-#define ROWS 82
+#define ROWS 164
 #define COLUMNS 1
 #define NUM_LEDS ROWS*COLUMNS
 #define STEAL_COLOR_PIN 0
 #define CLEAR_COLOR_PIN 1
 #define SENSOR_LED_PIN 16
-#define DISPLAY_LED_PIN 11
+#define DISPLAY_LED_PIN 10
 #define BATTERY_PIN A7
 #define BRIGHTNESS_CONTROL 23
-#define AUDIO_INPUT_PIN = A8;         // Input pin for audio data.
+#define AUDIO_INPUT_PIN A8        // Input pin for audio data.
 
 #define ANALOG_RATIO 310.3
 #define BATTERY_SLOPE 0.0045
 #define BATTERY_INTERCEPT -3.14
+#define BATTERY_APLPHA 0.06
+#define BATTERY_DEAD_READING 700
 
 
 CRGB leds[NUM_LEDS];
@@ -45,7 +47,7 @@ uint16_t xy2Pos(uint16_t x, uint16_t y);
 
 #define SATURATION 244
 
-uint16_t batteryReading = 923;
+uint16_t batteryReading = 2000;
 unsigned long batteryTimestamp = 0;
 
 uint8_t pinkHue = 240;
@@ -153,9 +155,26 @@ void loop() {
 
   // BATTERY READ
   if (currentTime > batteryTimestamp + 30000) {
-    batteryReading = analogRead(BATTERY_PIN);
+    float currentReading = analogRead(BATTERY_PIN);
+
+    if (batteryReading == 2000) {
+      batteryReading = (int)currentReading;
+    } else {
+      batteryReading = (int)((float)batteryReading * BATTERY_APLPHA + (1 - BATTERY_APLPHA) * (float)currentReading);
+    }
+
+    if (batteryReading < BATTERY_DEAD_READING) {
+      Serial.println("Batteries are dead!");
+      clear();
+      FastLED.show();
+      exit(0);
+    }
+
     batteryTimestamp = currentTime;
     Serial.print("raw: ");
+    Serial.println(currentReading);
+
+    Serial.print("moving average: ");
     Serial.println(batteryReading);
 
     float dividedVoltage = (float)batteryReading / ANALOG_RATIO;
