@@ -125,10 +125,15 @@ void setup() {
   sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 397);
   Serial.println("Sparkles!");
 
-  spectrumTop = new Spectrum(COLUMNS, ROWS, ROWS/2,
+  spectrumTop = new Spectrum(COLUMNS, ROWS, (ROWS/2) - 1,
     blueHue, SATURATION, true, 100, leds);
   spectrumBottom = new Spectrum(COLUMNS, ROWS, ROWS/2,
     blueHue, SATURATION, false, 100, leds);
+  spectrumTop = new Spectrum(COLUMNS, ROWS, ROWS,
+    blueHue, SATURATION, true, 100, leds);
+  spectrumBottom = new Spectrum(COLUMNS, ROWS, 0,
+    blueHue, SATURATION, false, 100, leds);
+
   Serial.println("Spectrum Setup");
 
   Serial.println("setup complete");
