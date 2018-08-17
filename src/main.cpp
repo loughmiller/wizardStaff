@@ -12,12 +12,12 @@
 #include <TeensyAudioFFT.h>
 
 #define ROWS 164
-#define COLUMNS 1
+#define COLUMNS 8
 #define NUM_LEDS ROWS*COLUMNS
 #define STEAL_COLOR_PIN 0
 #define CLEAR_COLOR_PIN 1
 #define SENSOR_LED_PIN 16
-#define DISPLAY_LED_PIN 10
+#define DISPLAY_LED_PIN 12
 #define BATTERY_PIN A7
 #define BRIGHTNESS_CONTROL 23
 #define AUDIO_INPUT_PIN A8        // Input pin for audio data.
@@ -27,6 +27,7 @@
 #define BATTERY_INTERCEPT -3.14
 #define BATTERY_APLPHA 0.06
 #define BATTERY_DEAD_READING 700
+#define BATTERY_READ_INTERVAL 60000
 
 
 CRGB leds[NUM_LEDS];
@@ -63,8 +64,6 @@ Spectrum * spectrumBottom;
 
 TeensyAudioFFT * taFFT;
 
-bool colorStolen;
-
 // COLOR SENSOR
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
 
@@ -85,7 +84,7 @@ void setup() {
   FastLED.setDither(0);
 
   // INDICATE BOOT SEQUENCE
-  setAll(0x004400);
+  setAll(0x002200);
   FastLED.show();
   FastLED.delay(1000);
 
@@ -123,7 +122,7 @@ void setup() {
 
   Serial.println("Streaks Setup");
 
-  sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 801);
+  sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 397);
   Serial.println("Sparkles!");
 
   spectrumTop = new Spectrum(COLUMNS, ROWS, ROWS/2,
@@ -131,8 +130,6 @@ void setup() {
   spectrumBottom = new Spectrum(COLUMNS, ROWS, ROWS/2,
     blueHue, SATURATION, false, 100, leds);
   Serial.println("Spectrum Setup");
-
-  colorStolen = false;
 
   Serial.println("setup complete");
 }
@@ -146,7 +143,6 @@ void loop() {
     uint8_t hue = readHue();
     // Serial.println(hue);
     // stealColorAnimation(hue);
-    colorStolen = true;
     changeAllHues(hue);
   }
 
@@ -154,7 +150,7 @@ void loop() {
   unsigned long currentTime = millis();
 
   // BATTERY READ
-  if (currentTime > batteryTimestamp + 30000) {
+  if (currentTime > batteryTimestamp + BATTERY_READ_INTERVAL) {
     float currentReading = analogRead(BATTERY_PIN);
 
     if (batteryReading == 2000) {
