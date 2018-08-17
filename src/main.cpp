@@ -151,6 +151,11 @@ void loop() {
     changeAllHues(hue);
   }
 
+  if (touchRead(CLEAR_COLOR_PIN) > 1900) {
+    Serial.println("Clear Color");
+    defaultAllHues();
+  }
+
   //  Serial.println(spectrumTop->getHue());
   unsigned long currentTime = millis();
 
