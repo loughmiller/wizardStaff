@@ -14,8 +14,8 @@
 #define ROWS 164
 #define COLUMNS 8
 #define NUM_LEDS ROWS*COLUMNS
-#define STEAL_COLOR_PIN 0
-#define CLEAR_COLOR_PIN 1
+#define STEAL_COLOR_PIN 1
+#define CLEAR_COLOR_PIN 0
 #define SENSOR_LED_PIN 16
 #define DISPLAY_LED_PIN 12
 #define BATTERY_PIN A7
@@ -142,18 +142,26 @@ void setup() {
 void loop() {
   clear();  // this just sets the array, no reason it can't be at the top
 
+
   // Serial.println(touchRead(STEAL_COLOR_PIN));
-  if (touchRead(STEAL_COLOR_PIN) > 1900) {
+  // Serial.println(touchRead(CLEAR_COLOR_PIN));
+  // Serial.println(touchRead(BRIGHTNESS_CONTROL));
+  
+  if (touchRead(STEAL_COLOR_PIN) > 4000) {
     Serial.println("Read Color");
     uint8_t hue = readHue();
-    // Serial.println(hue);
-    // stealColorAnimation(hue);
+    Serial.println(hue);
+    stealColorAnimation(hue);
     changeAllHues(hue);
   }
 
-  if (touchRead(CLEAR_COLOR_PIN) > 1900) {
+  if (touchRead(CLEAR_COLOR_PIN) > 4000) {
     Serial.println("Clear Color");
     defaultAllHues();
+  }
+
+  if (touchRead(BRIGHTNESS_CONTROL) > 4000) {
+    Serial.println("Change Brightness");
   }
 
   //  Serial.println(spectrumTop->getHue());
