@@ -61,6 +61,8 @@ SoundReaction * soundReaction;
 
 Spectrum * spectrumTop;
 Spectrum * spectrumBottom;
+Spectrum * spectrumTopFull;
+Spectrum * spectrumBottomFull;
 
 TeensyAudioFFT * taFFT;
 
@@ -118,21 +120,23 @@ void setup() {
 
   streak = new Streak(COLUMNS, ROWS, greenHue, SATURATION, leds);
   streak->setRandomHue(true);
-  streak->setIntervalMinMax(0, 10);
+  streak->setIntervalMinMax(17, 31);
+  streak->setLengthMinMax(13, 37);
+  streak->inititalize(millis());
 
   Serial.println("Streaks Setup");
 
   sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 397);
   Serial.println("Sparkles!");
 
-  spectrumTop = new Spectrum(COLUMNS, ROWS, (ROWS/2) - 1,
+  spectrumTop = new Spectrum(COLUMNS, ROWS, (ROWS / 2) - 1, ROWS/2,
     blueHue, SATURATION, true, 100, leds);
-  spectrumBottom = new Spectrum(COLUMNS, ROWS, ROWS/2,
+  spectrumBottom = new Spectrum(COLUMNS, ROWS, ROWS / 2, ROWS/2,
     blueHue, SATURATION, false, 100, leds);
-  spectrumTop = new Spectrum(COLUMNS, ROWS, ROWS,
+  spectrumTopFull = new Spectrum(COLUMNS, ROWS, 0, ROWS/2,
+    blueHue, SATURATION, false, 100, leds);
+  spectrumBottomFull = new Spectrum(COLUMNS, ROWS, ROWS-1, ROWS/2,
     blueHue, SATURATION, true, 100, leds);
-  spectrumBottom = new Spectrum(COLUMNS, ROWS, 0,
-    blueHue, SATURATION, false, 100, leds);
 
   Serial.println("Spectrum Setup");
 
@@ -207,6 +211,8 @@ void loop() {
   taFFT->updateRelativeIntensities(currentTime);
   spectrumTop->display(taFFT->intensities);
   spectrumBottom->display(taFFT->intensities);
+  spectrumTopFull->display(taFFT->intensities);
+  spectrumBottomFull->display(taFFT->intensities);
 
   sparkle->display();
 
@@ -231,6 +237,10 @@ void changeAllHues(uint8_t hue) {
   spectrumTop->setTravel(0);
   spectrumBottom->setHue(hue);
   spectrumBottom->setTravel(0);
+  spectrumTopFull->setHue(hue);
+  spectrumTopFull->setTravel(0);
+  spectrumBottomFull->setHue(hue);
+  spectrumBottomFull->setTravel(0);
 }
 
 void defaultAllHues() {
@@ -240,6 +250,10 @@ void defaultAllHues() {
   spectrumTop->setTravel(100);
   spectrumBottom->setHue(blueHue);
   spectrumBottom->setTravel(100);
+  spectrumTopFull->setHue(blueHue);
+  spectrumTopFull->setTravel(100);
+  spectrumBottomFull->setHue(blueHue);
+  spectrumBottomFull->setTravel(100);
 }
 
 uint8_t readHue() {
