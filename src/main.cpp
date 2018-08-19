@@ -29,6 +29,8 @@
 #define BATTERY_DEAD_READING 690
 #define BATTERY_READ_INTERVAL 60000
 
+#define SATURATION 244
+#define NUM_STREAKS 3
 
 CRGB leds[NUM_LEDS];
 CRGB off = 0x000000;
@@ -46,8 +48,6 @@ void readAccelerometer();
 
 uint16_t xy2Pos(uint16_t x, uint16_t y);
 
-#define SATURATION 244
-
 uint16_t batteryReading = 2000;
 unsigned long batteryTimestamp = 0;
 
@@ -55,7 +55,7 @@ uint8_t pinkHue = 240;
 uint8_t blueHue = 137;
 uint8_t greenHue = 55;
 
-Streak * streak;
+Streak * streaks[NUM_STREAKS];
 Sparkle * sparkle;
 SoundReaction * soundReaction;
 
@@ -118,11 +118,13 @@ void setup() {
   FastLED.show();
   Serial.println("cleared");
 
-  streak = new Streak(COLUMNS, ROWS, greenHue, SATURATION, leds);
-  streak->setRandomHue(true);
-  streak->setIntervalMinMax(17, 31);
-  streak->setLengthMinMax(13, 37);
-  streak->inititalize(millis());
+  for (int i=0;i<NUM_STREAKS;i++) {
+    streaks[i] = new Streak(COLUMNS, ROWS, greenHue, SATURATION, leds);
+    streaks[i]->setRandomHue(true);
+    streaks[i]->setIntervalMinMax(7, 37);
+    streaks[i]->setLengthMinMax(13, 37);
+    streaks[i]->inititalize(millis());
+  }
 
   Serial.println("Streaks Setup");
 
@@ -206,7 +208,9 @@ void loop() {
   }
 
   // Serial.println();
-  streak->display(currentTime);
+  for (int i=0;i<NUM_STREAKS;i++) {
+    streaks[i]->display(currentTime);
+  }
 
   taFFT->loop();
   taFFT->updateRelativeIntensities(currentTime);
@@ -231,8 +235,10 @@ void clear() {
 }
 
 void changeAllHues(uint8_t hue) {
-  streak->setRandomHue(false);
-  streak->setHue(hue);
+  for (int i=0;i<NUM_STREAKS;i++) {
+    streaks[i]->setRandomHue(false);
+    streaks[i]->setHue(hue);
+  }
 
   spectrumTop->setHue(hue);
   spectrumTop->setTravel(0);
@@ -245,7 +251,9 @@ void changeAllHues(uint8_t hue) {
 }
 
 void defaultAllHues() {
-  streak->setRandomHue(true);
+  for (int i=0;i<NUM_STREAKS;i++) {
+    streaks[i]->setRandomHue(true);
+  }
 
   spectrumTop->setHue(blueHue);
   spectrumTop->setTravel(100);
