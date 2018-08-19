@@ -86,7 +86,7 @@ void setup() {
   FastLED.setDither(0);
 
   // INDICATE BOOT SEQUENCE
-  setAll(0x002200);
+  setAll(0x000200);
   FastLED.show();
   FastLED.delay(1000);
 
@@ -102,9 +102,9 @@ void setup() {
     digitalWrite(SENSOR_LED_PIN, LOW);
   } else {
     Serial.println("No color sensor found!");
-    setAll(0x330000);
+    setAll(0x040000);
     FastLED.show();
-    while (1); // halt!
+    FastLED.delay(30000);
   }
 
   // AUDIO setup
@@ -150,7 +150,7 @@ void loop() {
   // Serial.println(touchRead(STEAL_COLOR_PIN));
   // Serial.println(touchRead(CLEAR_COLOR_PIN));
   // Serial.println(touchRead(BRIGHTNESS_CONTROL));
-  
+
   if (touchRead(STEAL_COLOR_PIN) > 4000) {
     Serial.println("Read Color");
     uint8_t hue = readHue();
