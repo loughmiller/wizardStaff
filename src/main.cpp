@@ -218,10 +218,23 @@ void loop() {
   }
 
   for (int i=0;i<min(batteryPercentage*10, 10);i++) {
-    Serial.println(9 - i);
-    leds[9 - i] = batteryMeterColor;
+    leds[xy2Pos(2, 163 - i)] = batteryMeterColor;
   }
 
+  // BUTTON INDICATORS
+  // CHANGE BRIGHTNESS
+  leds[xy2Pos(1, 13)] = 0x000004;
+  leds[xy2Pos(2, 13)] = 0x000006;
+
+  // CHANGE BRIGHTNESS
+  leds[xy2Pos(1, 21)] = 0x040000;
+  leds[xy2Pos(2, 21)] = 0x060000;
+
+  // CHANGE BRIGHTNESS
+  leds[xy2Pos(1, 28)] = 0x000400;
+  leds[xy2Pos(2, 28)] = 0x000600;
+
+  // MAIN DISPLAY
   // Serial.println();
   for (int i=0;i<NUM_STREAKS;i++) {
     streaks[i]->display(currentTime);
