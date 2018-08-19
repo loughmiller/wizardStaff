@@ -43,7 +43,6 @@ uint8_t calcHue(float r, float g, float b);
 void defaultAllHues();
 void changeAllHues(uint8_t hue);
 void stealColorAnimation(uint8_t hue);
-void setHeadpieceColumn(uint8_t column, CRGB color);
 void readAccelerometer();
 
 uint16_t xy2Pos(uint16_t x, uint16_t y);
