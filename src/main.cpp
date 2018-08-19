@@ -25,8 +25,8 @@
 #define ANALOG_RATIO 310.3
 #define BATTERY_SLOPE 0.0045
 #define BATTERY_INTERCEPT -3.14
-#define BATTERY_APLPHA 0.06
-#define BATTERY_DEAD_READING 700
+#define BATTERY_APLPHA 0.2
+#define BATTERY_DEAD_READING 690
 #define BATTERY_READ_INTERVAL 60000
 
 
@@ -82,8 +82,8 @@ void setup() {
 
   // SETUP LEDS
   FastLED.addLeds<NEOPIXEL, DISPLAY_LED_PIN>(leds, NUM_LEDS).setCorrection( 0xFFD08C );;
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, 4000);
-  FastLED.setDither(0);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 3000);
+  FastLED.setDither(1);
 
   // INDICATE BOOT SEQUENCE
   setAll(0x000200);
@@ -181,13 +181,6 @@ void loop() {
       batteryReading = (int)((float)batteryReading * BATTERY_APLPHA + (1 - BATTERY_APLPHA) * (float)currentReading);
     }
 
-    if (batteryReading < BATTERY_DEAD_READING) {
-      Serial.println("Batteries are dead!");
-      clear();
-      FastLED.show();
-      exit(0);
-    }
-
     batteryTimestamp = currentTime;
     Serial.print("raw: ");
     Serial.println(currentReading);
@@ -202,6 +195,14 @@ void loop() {
     float batteryPercentage = ((float)batteryReading * BATTERY_SLOPE) + BATTERY_INTERCEPT;
     Serial.print("percentage: ");
     Serial.println(batteryPercentage);
+
+    if (batteryReading < BATTERY_DEAD_READING) {
+      Serial.println("");
+      Serial.println("Batteries are dead!");
+      clear();
+      FastLED.show();
+      exit(0);
+    }
   }
 
   // Serial.println();
