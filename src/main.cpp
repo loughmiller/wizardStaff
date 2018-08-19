@@ -55,6 +55,9 @@ uint8_t pinkHue = 240;
 uint8_t blueHue = 137;
 uint8_t greenHue = 55;
 
+CHSV blueBatteryMeterColor(blueHue, SATURATION, 64);
+CRGB redBatteryMeeterColor = 0x060000;
+
 Streak * streaks[NUM_STREAKS];
 Sparkle * sparkle;
 SoundReaction * soundReaction;
@@ -205,6 +208,19 @@ void loop() {
       FastLED.show();
       exit(0);
     }
+  }
+
+  // BATTERY GAUGE
+  float batteryPercentage = ((float)batteryReading * BATTERY_SLOPE) + BATTERY_INTERCEPT;
+  CRGB batteryMeterColor = blueBatteryMeterColor;
+
+  if (batteryPercentage < 0.2) {
+    batteryMeterColor = redBatteryMeeterColor;
+  }
+
+  for (int i=0;i<min(batteryPercentage*10, 10);i++) {
+    Serial.println(9 - i);
+    leds[9 - i] = batteryMeterColor;
   }
 
   // Serial.println();
