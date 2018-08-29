@@ -23,10 +23,10 @@
 #define AUDIO_INPUT_PIN A8        // Input pin for audio data.
 
 #define ANALOG_RATIO 310.3
-#define BATTERY_SLOPE 0.0045
-#define BATTERY_INTERCEPT -3.14
+#define BATTERY_SLOPE 0.0043
+#define BATTERY_INTERCEPT -3.1616
 #define BATTERY_APLPHA 0.2
-#define BATTERY_DEAD_READING 690
+#define BATTERY_DEAD_READING 700
 #define BATTERY_READ_INTERVAL 120000
 #define BATTERY_LOAD_OFFSET 1.07
 
@@ -43,6 +43,13 @@
 #define BRIGHTNESS 224
 #define SATURATION 244
 #define NUM_STREAKS 3
+
+#define BUTTON_VALUE 128
+
+uint8_t pinkHue = 240;
+uint8_t blueHue = 137;
+uint8_t greenHue = 55;
+
 
 CRGB leds[NUM_LEDS];
 CRGB off = 0x000000;
@@ -69,15 +76,11 @@ void decreaseSpectrumHue();
 // GLOBALS (OMG - WTF?)
 uint_fast8_t currentMode = 0;
 uint_fast8_t currentBrightness = BRIGHTNESS;
-CHSV currentModeColor((256/MODES) * currentMode, SATURATION, 32);
+CHSV currentModeColor(((256/MODES) * currentMode) + pinkHue, SATURATION, BUTTON_VALUE);
 unsigned long buttonTimestamp = 0;
 
 uint16_t batteryReading = 2000;
 unsigned long batteryTimestamp = 0;
-
-uint8_t pinkHue = 240;
-uint8_t blueHue = 137;
-uint8_t greenHue = 55;
 
 uint_fast8_t currentSpectrumHue = blueHue;
 
@@ -112,7 +115,7 @@ void setup() {
   // SETUP LEDS
   FastLED.addLeds<NEOPIXEL, DISPLAY_LED_PIN>(leds, NUM_LEDS).setCorrection( 0xFFD08C );;
   FastLED.setDither(1);
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, 2600);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 3000);
   FastLED.setBrightness(currentBrightness);
 
   // INDICATE BOOT SEQUENCE
@@ -158,7 +161,7 @@ void setup() {
 
   Serial.println("Streaks Setup");
 
-  sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 397);
+  sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 197);
   Serial.println("Sparkles!");
 
   spectrumTop = new Spectrum(COLUMNS, ROWS, (ROWS / 2) - 1, ROWS/2,
@@ -212,7 +215,7 @@ void loop() {
 
   // BATTERY READ
   if (currentTime > batteryTimestamp + BATTERY_READ_INTERVAL) {
-    float currentReading = analogRead(BATTERY_PIN) * BATTERY_LOAD_OFFSET;
+    float currentReading = analogRead(BATTERY_PIN);
 
     if (batteryReading == 2000) {
       batteryReading = (int)currentReading;
@@ -261,13 +264,13 @@ void loop() {
   leds[xy2Pos(1, 13)] = currentModeColor;
   leds[xy2Pos(2, 13)] = currentModeColor;
 
-  // CHANGE BRIGHTNESS
-  leds[xy2Pos(1, 21)] = 0x000400;
-  leds[xy2Pos(2, 21)] = 0x000400;
+  // UP
+  leds[xy2Pos(1, 21)] = CHSV(pinkHue, SATURATION, BUTTON_VALUE);
+  leds[xy2Pos(2, 21)] = CHSV(pinkHue, SATURATION, BUTTON_VALUE);
 
-  // CHANGE BRIGHTNESS
-  leds[xy2Pos(1, 28)] = 0x040000;
-  leds[xy2Pos(2, 28)] = 0x040000;
+  // DOWN
+  leds[xy2Pos(1, 28)] = CHSV(blueHue, SATURATION, BUTTON_VALUE);
+  leds[xy2Pos(2, 28)] = CHSV(blueHue, SATURATION, BUTTON_VALUE);
 
   // MAIN DISPLAY
   // Serial.println();
@@ -416,18 +419,20 @@ uint8_t calcHue(float r, float g, float b) {
 }
 
 void stealColorAnimation(uint8_t hue) {
+  float z = 0;
   CRGB color = CHSV(hue, SATURATION, 255);
   setAll(off);
 
   FastLED.setBrightness(64);
 
-  float d = 125;
-  for (uint16_t y=0; y<ROWS; y++) {
+  for (uint16_t y=1; y<ROWS; y++) {
     for (uint8_t x=0; x<COLUMNS; x++) {
       leds[xy2Pos(x, y)] = color;
     }
-    FastLED.show();
-    // FastLED.delay((int)(d *= 0.8));
+    if (y > z) {
+      FastLED.show();
+      z = y * 1.07;
+    }
   }
 
   // Serial.println("StealColorAnimation Complete.");
