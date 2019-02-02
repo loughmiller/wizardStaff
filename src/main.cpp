@@ -30,15 +30,7 @@
 #define BATTERY_READ_INTERVAL 120000
 #define BATTERY_LOAD_OFFSET 1.07
 
-#define MODE_COLOR_STEAL 0
-#define MODE_BRIGHTNESS 1
-#define MODE_SPECTRUM_COLOR 2
-#define MODE_SPECTRUM_TRAVEL 3
-#define MODE_SPARKLE_COLOR 4
-#define MODE_SPARKLE_AMOUNT 5
-#define MODE_STREAK_COLOR 6
-#define MODE_STREAK_COUNT 7
-#define MODES 2
+#define MODES 3
 
 #define BRIGHTNESS 224
 #define SATURATION 244
@@ -72,6 +64,8 @@ void increaseBrightness();
 void decreaseBrightness();
 void increaseSpectrumHue();
 void decreaseSpectrumHue();
+void increaseSpectrumThreshold();
+void decreaseSpectrumThreshold();
 
 // GLOBALS (OMG - WTF?)
 uint_fast8_t currentMode = 0;
@@ -183,6 +177,8 @@ void loop() {
   clear();  // this just sets the array, no reason it can't be at the top
   unsigned long currentTime = millis();
 
+  Serial.println(spectrumTop->getThreshold());
+
 
   // Serial.println(touchRead(CONTROL_UP));
   // Serial.println(touchRead(CONTROL_DOWN));
@@ -202,6 +198,7 @@ void loop() {
       switch(currentMode) {
         case 0: stealColor();
         case 1: increaseBrightness();
+        case 2: increaseSpectrumThreshold();
       }
     }
 
@@ -209,6 +206,7 @@ void loop() {
       switch(currentMode) {
         case 0: clearStolenColor();
         case 1: decreaseBrightness();
+        case 2: decreaseSpectrumThreshold();
       }
     }
   }
@@ -317,6 +315,20 @@ void decreaseBrightness() {
     currentBrightness = (currentBrightness - 16) % 256;
     FastLED.setBrightness(currentBrightness);
   }
+}
+
+void decreaseSpectrumThreshold() {
+  spectrumTop->setThreshold(min(0.9, spectrumTop->getThreshold() + 0.01));
+  spectrumBottom->setThreshold(min(0.9, spectrumTop->getThreshold() + 0.01));
+  spectrumTopFull->setThreshold(min(0.9, spectrumTop->getThreshold() + 0.01));
+  spectrumBottomFull->setThreshold(min(0.9, spectrumTop->getThreshold() + 0.01));
+}
+
+void increaseSpectrumThreshold() {
+  spectrumTop->setThreshold(max(0.3, spectrumTop->getThreshold() - 0.01));
+  spectrumBottom->setThreshold(max(0.3, spectrumTop->getThreshold() - 0.01));
+  spectrumTopFull->setThreshold(max(0.3, spectrumTop->getThreshold() - 0.01));
+  spectrumBottomFull->setThreshold(max(0.3, spectrumTop->getThreshold() - 0.01));
 }
 
 void increaseSpectrumHue() {
