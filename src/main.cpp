@@ -3,7 +3,6 @@
 #include <Wire.h>
 #include <Adafruit_TCS34725.h>
 #include <Adafruit_Sensor.h>
-#include <Adafruit_MMA8451.h>
 #include <Visualization.h>
 #include <Streak.h>
 #include <Sparkle.h>
@@ -18,7 +17,7 @@
 #define CONTROL_DOWN 0
 #define CONTROL_MODE 23
 #define SENSOR_LED_PIN 16
-#define DISPLAY_LED_PIN 12
+#define DISPLAY_LED_PIN 32
 #define BATTERY_PIN A7
 #define AUDIO_INPUT_PIN A8        // Input pin for audio data.
 
@@ -94,9 +93,6 @@ TeensyAudioFFT * taFFT;
 
 // COLOR SENSOR
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
-
-// ACCELEROMETER
-Adafruit_MMA8451 mma = Adafruit_MMA8451();
 
 void setup() {
   delay(2000);
