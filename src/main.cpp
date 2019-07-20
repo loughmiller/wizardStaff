@@ -6,13 +6,12 @@
 #include <Visualization.h>
 #include <Streak.h>
 #include <Sparkle.h>
-#include <SoundReaction.h>
 #include <Spectrum.h>
 #include <TeensyAudioFFT.h>
 
 #define ROWS 164
 #define COLUMNS 8
-#define NUM_LEDS ROWS*COLUMNS
+#define NUM_LEDS (ROWS*COLUMNS)
 #define CONTROL_UP 1
 #define CONTROL_DOWN 0
 #define CONTROL_MODE 23
@@ -53,7 +52,6 @@ uint8_t calcHue(float r, float g, float b);
 void defaultAllHues();
 void changeAllHues(uint8_t hue);
 void stealColorAnimation(uint8_t hue);
-void readAccelerometer();
 uint16_t xy2Pos(uint16_t x, uint16_t y);
 
 // ACTIONS
@@ -82,7 +80,6 @@ CRGB redBatteryMeeterColor = 0x060000;
 
 Streak * streaks[NUM_STREAKS];
 Sparkle * sparkle;
-SoundReaction * soundReaction;
 
 Spectrum * spectrumTop;
 Spectrum * spectrumBottom;
@@ -163,8 +160,6 @@ void setup() {
   spectrumBottomFull = new Spectrum(COLUMNS, ROWS, ROWS-1, ROWS/2,
     currentSpectrumHue, SATURATION, true, 100, leds);
 
-  Serial.println("Spectrum Setup");
-
   Serial.println("setup complete");
 }
 
@@ -173,7 +168,7 @@ void loop() {
   clear();  // this just sets the array, no reason it can't be at the top
   unsigned long currentTime = millis();
 
-  Serial.println(spectrumTop->getThreshold());
+  // Serial.println(spectrumTop->getThreshold());
 
 
   // Serial.println(touchRead(CONTROL_UP));
@@ -404,7 +399,7 @@ uint8_t readHue() {
 
 uint8_t calcHue(float r, float g, float b) {
   CRGB maxColor;
-  float minC, maxC, delta, hue, hue255;
+  float minC, maxC, delta, hue;
 
   minC = min(r, min(g, b));
   maxC = max(r, max(g, b));
