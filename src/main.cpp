@@ -59,6 +59,7 @@ void defaultAllHues();
 void changeAllHues(uint8_t hue);
 void stealColorAnimation(uint8_t hue);
 uint16_t xy2Pos(uint16_t x, uint16_t y);
+void displayGauge(uint_fast16_t x, uint_fast16_t yTop, uint_fast16_t length, CHSV color, float value);
 
 // ACTIONS
 void stealColor();
@@ -76,7 +77,7 @@ uint16_t batteryReading = 2000;
 unsigned long batteryTimestamp = 0;
 
 CHSV blueBatteryMeterColor(blueHue, SATURATION, 64);
-CRGB redBatteryMeeterColor = 0x060000;
+CHSV redBatteryMeeterColor(0, 255, 64);
 
 Streak * streaks[NUM_STREAKS];
 Sparkle * sparkle;
@@ -243,9 +244,9 @@ void loop() {
     float currentReading = analogRead(BATTERY_PIN);
 
     if (batteryReading == 2000) {
-      batteryReading = (int)currentReading;
+      batteryReading = (uint_fast16_t)currentReading;
     } else {
-      batteryReading = (int)((float)batteryReading * BATTERY_APLPHA + (1 - BATTERY_APLPHA) * (float)currentReading);
+      batteryReading = (uint_fast16_t)((float)batteryReading * BATTERY_APLPHA + (1 - BATTERY_APLPHA) * (float)currentReading);
     }
 
     batteryTimestamp = currentTime;
@@ -274,15 +275,14 @@ void loop() {
 
   // BATTERY GAUGE
   float batteryPercentage = ((float)batteryReading * BATTERY_SLOPE) + BATTERY_INTERCEPT;
-  CRGB batteryMeterColor = blueBatteryMeterColor;
+  CHSV batteryMeterColor = blueBatteryMeterColor;
 
   if (batteryPercentage < 0.2) {
     batteryMeterColor = redBatteryMeeterColor;
   }
 
-  for (int i=0;i<min(batteryPercentage*10, 10);i++) {
-    leds[xy2Pos(2, 163 - i)] = batteryMeterColor;
-  }
+  displayGauge(2, 154, 10, batteryMeterColor, batteryPercentage);
+
 
   // BUTTON INDICATORS
   // CHANGE MODE
@@ -461,6 +461,14 @@ uint16_t xy2Pos(uint16_t x, uint16_t y) {
   }
 
   return pos;
+}
+
+void displayGauge(uint_fast16_t x, uint_fast16_t yTop, uint_fast16_t length, CHSV color, float value) {
+  for (uint_fast16_t i = 0; i < length; i++) {
+    if (value >= (length - i) / length) {
+      leds[xy2Pos(x, yTop + i)] = color;
+    }
+  }
 }
 
 
