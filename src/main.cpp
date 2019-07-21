@@ -98,8 +98,8 @@ const uint_fast16_t sampleCount{fftSize * 2};   // Complex FFT functions require
 const float middleA{440.0};                     // frequency of middle A.  Needed for freqeuncy to note conversion
 const uint_fast16_t sampleIntervalMs{1000000 / (fftSize * fftBinSize)};  // how often to get a sample, needed for IntervalTimer
 
-// FREQUENCY TO NOTE CONSTANTS - CALCULATE HERE: https://docs.google.com/spreadsheets/d/1Rsjm_gt4VXkSc86QtmduUsII1bUMw3T9oJswvdYh8Dk/edit?usp=sharing 
-const uint_fast16_t noteCount{41};              // how many notes are we trying detect
+// FREQUENCY TO NOTE CONSTANTS - CALCULATE HERE: https://docs.google.com/spreadsheets/d/1CPcxGFB7Lm6xJ8CePfCF0qXQEZuhQ-nI1TC4PAiAd80/edit?usp=sharing
+const uint_fast16_t noteCount{40};              // how many notes are we trying to detect
 const uint_fast16_t notesBelowMiddleA{30};      
 
 // NOTE DETECTION GLOBALS
