@@ -342,17 +342,13 @@ void clearStolenColor() {
 }
 
 void increaseBrightness() {
-  if (currentBrightness != 240) {
-    currentBrightness = (currentBrightness + 16) % 256;
-    FastLED.setBrightness(currentBrightness);
-  }
+  currentBrightness = min((currentBrightness + 16), (uint_fast8_t) 240);
+  FastLED.setBrightness(currentBrightness);
 }
 
 void decreaseBrightness() {
-  if (currentBrightness != 0) {
-    currentBrightness = (currentBrightness - 16) % 256;
-    FastLED.setBrightness(currentBrightness);
-  }
+  currentBrightness = max((currentBrightness - 16), (uint_fast8_t)16);
+  FastLED.setBrightness(currentBrightness);
 }
 
 void setAll(CRGB color) {
