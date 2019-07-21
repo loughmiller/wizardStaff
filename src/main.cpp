@@ -192,10 +192,14 @@ void setup() {
 
   spectrum1 = new Spectrum2(COLUMNS, ROWS, (ROWS / 4) - 1, noteCount,
     pinkHue, SATURATION, true, 100, leds);
+  // spectrum2 = new Spectrum2(COLUMNS, ROWS, (ROWS / 4), noteCount,
+  //   pinkHue, SATURATION, false, 100, leds);
   spectrum2 = new Spectrum2(COLUMNS, ROWS, (ROWS / 2) - 1, noteCount,
     pinkHue, SATURATION, true, 100, leds);
-  spectrum3 = new Spectrum2(COLUMNS, ROWS, ((ROWS / 4) * 3) -1 , noteCount,
+  spectrum3 = new Spectrum2(COLUMNS, ROWS, ((ROWS / 4) * 3) - 1 , noteCount,
     pinkHue, SATURATION, true, 100, leds);
+  // spectrum4 = new Spectrum2(COLUMNS, ROWS, (ROWS / 4) * 3, noteCount,
+  //   pinkHue, SATURATION, false, 100, leds);
   spectrum4 = new Spectrum2(COLUMNS, ROWS, ROWS - 1, noteCount,
     pinkHue, SATURATION, true, 100, leds);
 
@@ -383,10 +387,10 @@ void defaultAllHues() {
     streaks[i]->setRandomHue(true);
   }
 
-  spectrum1->setDrift(2);
-  spectrum2->setDrift(9);
-  spectrum3->setDrift(5);
-  spectrum4->setDrift(3);
+  spectrum1->setDrift(5);
+  spectrum2->setDrift(-3);
+  spectrum3->setDrift(3);
+  spectrum4->setDrift(-5);
 }
 
 uint8_t readHue() {
