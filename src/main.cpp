@@ -177,7 +177,7 @@ void setup() {
   FastLED.show();
   Serial.println("cleared");
 
-  for (int i=0;i<NUM_STREAKS;i++) {
+  for (uint_fast16_t i=0;i<NUM_STREAKS;i++) {
     streaks[i] = new Streak(COLUMNS, ROWS, greenHue, SATURATION, leds);
     streaks[i]->setRandomHue(true);
     streaks[i]->setIntervalMinMax(7, 37);
@@ -313,7 +313,7 @@ void loop() {
   // \ NOTE DETECTION
   ////////////////////////////////////////////////////////////////////////////////////////////////
 
-  for (int i=0;i<NUM_STREAKS;i++) {
+  for (uint_fast16_t i=0;i<NUM_STREAKS;i++) {
     streaks[i]->display(currentTime);
   }
 
@@ -352,7 +352,7 @@ void decreaseBrightness() {
 }
 
 void setAll(CRGB color) {
-  for (int i=0; i<NUM_LEDS; i++) {
+  for (uint_fast16_t i=0; i<NUM_LEDS; i++) {
     leds[i] = color;
   }
 }
@@ -362,7 +362,7 @@ void clear() {
 }
 
 void changeAllHues(uint8_t hue) {
-  for (int i=0;i<NUM_STREAKS;i++) {
+  for (uint_fast16_t i=0;i<NUM_STREAKS;i++) {
     streaks[i]->setRandomHue(false);
     streaks[i]->setHue(hue);
   }
@@ -379,7 +379,7 @@ void changeAllHues(uint8_t hue) {
 }
 
 void defaultAllHues() {
-  for (int i=0;i<NUM_STREAKS;i++) {
+  for (uint_fast16_t i=0;i<NUM_STREAKS;i++) {
     streaks[i]->setRandomHue(true);
   }
 
@@ -498,7 +498,7 @@ void noteDetectionLoop() {
 
   for (uint_fast16_t i=1; i<fftSize/2; i++) {  // ignore top half of the FFT results
     float frequency = i * (fftBinSize);
-    int note = roundf(12 * (log(frequency / middleA) / log(2))) + notesBelowMiddleA;
+    uint_fast16_t note = roundf(12 * (log(frequency / middleA) / log(2))) + notesBelowMiddleA;
 
     if (note < 0) {
       continue;
