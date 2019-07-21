@@ -186,18 +186,19 @@ void setup() {
 
   Serial.println("Streaks Setup");
 
-  sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 197);
+  sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 247);
   Serial.println("Sparkles!");
 
-  spectrum1 = new Spectrum2(COLUMNS, ROWS, 0, noteCount,
-    pinkHue, SATURATION, false, 100, leds);
+  spectrum1 = new Spectrum2(COLUMNS, ROWS, (ROWS / 4) - 1, noteCount,
+    pinkHue, SATURATION, true, 100, leds);
   spectrum2 = new Spectrum2(COLUMNS, ROWS, (ROWS / 2) - 1, noteCount,
     pinkHue, SATURATION, true, 100, leds);
-  spectrum3 = new Spectrum2(COLUMNS, ROWS, ROWS / 2, noteCount,
-    pinkHue, SATURATION, false, 100, leds);
+  spectrum3 = new Spectrum2(COLUMNS, ROWS, ((ROWS / 4) * 3) -1 , noteCount,
+    pinkHue, SATURATION, true, 100, leds);
   spectrum4 = new Spectrum2(COLUMNS, ROWS, ROWS - 1, noteCount,
     pinkHue, SATURATION, true, 100, leds);
 
+  defaultAllHues();
   Serial.println("setup complete");
 }
 
@@ -206,11 +207,11 @@ void loop() {
   clear();  // this just sets the array, no reason it can't be at the top
   unsigned long currentTime = millis();
 
-  // Serial.println(touchRead(CONTROL_UP));
-  // Serial.println(touchRead(CONTROL_DOWN));
-  // Serial.println(touchRead(CONTROL_MODE));
+  if (currentTime > buttonTimestamp + 500) {
+    // Serial.println(touchRead(CONTROL_UP));
+    // Serial.println(touchRead(CONTROL_DOWN));
+    // Serial.println(touchRead(CONTROL_MODE));
 
-  if (currentTime > buttonTimestamp + 1000) {
     buttonTimestamp = currentTime;
 
     if (touchRead(CONTROL_MODE) > 4000) {
@@ -365,12 +366,27 @@ void changeAllHues(uint8_t hue) {
     streaks[i]->setRandomHue(false);
     streaks[i]->setHue(hue);
   }
+
+  spectrum1->setHue(hue);
+  spectrum2->setHue(hue);
+  spectrum3->setHue(hue);
+  spectrum4->setHue(hue);
+
+  spectrum1->setDrift(0);
+  spectrum2->setDrift(0);
+  spectrum3->setDrift(0);
+  spectrum4->setDrift(0);
 }
 
 void defaultAllHues() {
   for (int i=0;i<NUM_STREAKS;i++) {
     streaks[i]->setRandomHue(true);
   }
+
+  spectrum1->setDrift(2);
+  spectrum2->setDrift(9);
+  spectrum3->setDrift(5);
+  spectrum4->setDrift(3);
 }
 
 uint8_t readHue() {
