@@ -3,11 +3,16 @@
 #include <Wire.h>
 #include <Adafruit_TCS34725.h>
 #include <Adafruit_Sensor.h>
+#define ARM_MATH_CM4
+#include <arm_math.h>
+#include <algorithm>    // std::sort
+
 #include <Visualization.h>
 #include <Streak.h>
 #include <Sparkle.h>
-#include <Spectrum.h>
-#include <TeensyAudioFFT.h>
+#include <Spectrum2.h>
+
+using namespace std;
 
 #define ROWS 164
 #define COLUMNS 8
@@ -16,7 +21,8 @@
 #define CONTROL_DOWN 0
 #define CONTROL_MODE 23
 #define SENSOR_LED_PIN 16
-#define DISPLAY_LED_PIN 32
+// #define DISPLAY_LED_PIN 32  Teensy 3.6 layout
+#define DISPLAY_LED_PIN 12
 #define BATTERY_PIN A7
 #define AUDIO_INPUT_PIN A8        // Input pin for audio data.
 
@@ -59,10 +65,6 @@ void stealColor();
 void clearStolenColor();
 void increaseBrightness();
 void decreaseBrightness();
-void increaseSpectrumHue();
-void decreaseSpectrumHue();
-void increaseSpectrumThreshold();
-void decreaseSpectrumThreshold();
 
 // GLOBALS (OMG - WTF?)
 uint_fast8_t currentMode = 0;
@@ -73,23 +75,60 @@ unsigned long buttonTimestamp = 0;
 uint16_t batteryReading = 2000;
 unsigned long batteryTimestamp = 0;
 
-uint_fast8_t currentSpectrumHue = blueHue;
-
 CHSV blueBatteryMeterColor(blueHue, SATURATION, 64);
 CRGB redBatteryMeeterColor = 0x060000;
 
 Streak * streaks[NUM_STREAKS];
 Sparkle * sparkle;
 
-Spectrum * spectrumTop;
-Spectrum * spectrumBottom;
-Spectrum * spectrumTopFull;
-Spectrum * spectrumBottomFull;
-
-TeensyAudioFFT * taFFT;
-
 // COLOR SENSOR
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// NOTE DETECTION
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+// NOTE DETECTION CONSTANTS
+const uint_fast16_t fftSize{256};               // Size of the FFT.  Realistically can only be at most 256
+const uint_fast16_t fftBinSize{8};              // Hz per FFT bin  -  sample rate is fftSize * fftBinSize
+const uint_fast16_t sampleCount{fftSize * 2};   // Complex FFT functions require a coefficient for the imaginary part of the
+                                                // input.  This makes the sample array 2x the fftSize
+const float middleA{440.0};                     // frequency of middle A.  Needed for freqeuncy to note conversion
+const uint_fast16_t sampleIntervalMs{1000000 / (fftSize * fftBinSize)};  // how often to get a sample, needed for IntervalTimer
+
+// FREQUENCY TO NOTE CONSTANTS - CALCULATE HERE: https://docs.google.com/spreadsheets/d/1Rsjm_gt4VXkSc86QtmduUsII1bUMw3T9oJswvdYh8Dk/edit?usp=sharing 
+const uint_fast16_t noteCount{41};              // how many notes are we trying detect
+const uint_fast16_t notesBelowMiddleA{30};      
+
+// NOTE DETECTION GLOBALS
+float samples[sampleCount*2];
+uint_fast16_t sampleCounter = 0;
+float sampleBuffer[sampleCount];
+float magnitudes[fftSize];
+float noteMagnatudes[noteCount];
+arm_cfft_radix4_instance_f32 fft_inst;
+IntervalTimer samplingTimer;
+
+// NOTE DETECTION FUNCTIONS
+void noteDetectionSetup();        // run this once during setup
+void noteDetectionLoop();         // run this once per loop
+void samplingCallback();
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// \ NOTE DETECTION
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+Spectrum2 * spectrum1;
+Spectrum2 * spectrum2;
+Spectrum2 * spectrum3;
+Spectrum2 * spectrum4;
+
+/// SOME SHIT
+Visualization * pinkNotes;
+float threshold;
+float peak;
+///\\\ SOME SHIT
 
 void setup() {
   delay(2000);
@@ -98,6 +137,11 @@ void setup() {
   Serial.println("setup started");
 
   randomSeed(analogRead(14));
+
+  noteDetectionSetup();
+
+  // SOME SHIT
+  pinkNotes = new Visualization(noteCount, 1, pinkHue, SATURATION, leds);
 
   // SETUP LEDS
   FastLED.addLeds<NEOPIXEL, DISPLAY_LED_PIN>(leds, NUM_LEDS).setCorrection( 0xFFD08C );;
@@ -127,12 +171,6 @@ void setup() {
     FastLED.delay(30000);
   }
 
-  // AUDIO setup
-  TeensyAudioFFTSetup(AUDIO_INPUT_PIN);
-  samplingBegin();
-  taFFT = new TeensyAudioFFT();
-  Serial.println("Audio Sampling Started");
-
   // DISPLAY STUFF
   clear();
   FastLED.show();
@@ -151,14 +189,14 @@ void setup() {
   sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 197);
   Serial.println("Sparkles!");
 
-  spectrumTop = new Spectrum(COLUMNS, ROWS, (ROWS / 2) - 1, ROWS/2,
-    currentSpectrumHue, SATURATION, true, 100, leds);
-  spectrumBottom = new Spectrum(COLUMNS, ROWS, ROWS / 2, ROWS/2,
-    currentSpectrumHue, SATURATION, false, 100, leds);
-  spectrumTopFull = new Spectrum(COLUMNS, ROWS, 0, ROWS/2,
-    currentSpectrumHue, SATURATION, false, 100, leds);
-  spectrumBottomFull = new Spectrum(COLUMNS, ROWS, ROWS-1, ROWS/2,
-    currentSpectrumHue, SATURATION, true, 100, leds);
+  spectrum1 = new Spectrum2(COLUMNS, ROWS, 0, noteCount,
+    pinkHue, SATURATION, false, 100, leds);
+  spectrum2 = new Spectrum2(COLUMNS, ROWS, (ROWS / 2) - 1, noteCount,
+    pinkHue, SATURATION, true, 100, leds);
+  spectrum3 = new Spectrum2(COLUMNS, ROWS, ROWS / 2, noteCount,
+    pinkHue, SATURATION, false, 100, leds);
+  spectrum4 = new Spectrum2(COLUMNS, ROWS, ROWS - 1, noteCount,
+    pinkHue, SATURATION, true, 100, leds);
 
   Serial.println("setup complete");
 }
@@ -167,9 +205,6 @@ void setup() {
 void loop() {
   clear();  // this just sets the array, no reason it can't be at the top
   unsigned long currentTime = millis();
-
-  // Serial.println(spectrumTop->getThreshold());
-
 
   // Serial.println(touchRead(CONTROL_UP));
   // Serial.println(touchRead(CONTROL_DOWN));
@@ -189,7 +224,7 @@ void loop() {
       switch(currentMode) {
         case 0: stealColor();
         case 1: increaseBrightness();
-        case 2: increaseSpectrumThreshold();
+        // case 2: increaseSpectrumThreshold();
       }
     }
 
@@ -197,7 +232,7 @@ void loop() {
       switch(currentMode) {
         case 0: clearStolenColor();
         case 1: decreaseBrightness();
-        case 2: decreaseSpectrumThreshold();
+        // case 2: decreaseSpectrumThreshold();
       }
     }
   }
@@ -262,17 +297,24 @@ void loop() {
   leds[xy2Pos(2, 28)] = CHSV(blueHue, SATURATION, BUTTON_VALUE);
 
   // MAIN DISPLAY
-  // Serial.println();
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+  // NOTE DETECTION
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+  noteDetectionLoop();
+
+  spectrum1->display(noteMagnatudes);
+  spectrum2->display(noteMagnatudes);
+  spectrum3->display(noteMagnatudes);
+  spectrum4->display(noteMagnatudes);
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+  // \ NOTE DETECTION
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+
   for (int i=0;i<NUM_STREAKS;i++) {
     streaks[i]->display(currentTime);
   }
-
-  taFFT->loop();
-  taFFT->updateRelativeIntensities(currentTime);
-  spectrumTop->display(taFFT->intensities);
-  spectrumBottom->display(taFFT->intensities);
-  spectrumTopFull->display(taFFT->intensities);
-  spectrumBottomFull->display(taFFT->intensities);
 
   sparkle->display();
 
@@ -308,37 +350,6 @@ void decreaseBrightness() {
   }
 }
 
-void decreaseSpectrumThreshold() {
-  spectrumTop->setThreshold(min(0.9, spectrumTop->getThreshold() + 0.01));
-  spectrumBottom->setThreshold(min(0.9, spectrumTop->getThreshold() + 0.01));
-  spectrumTopFull->setThreshold(min(0.9, spectrumTop->getThreshold() + 0.01));
-  spectrumBottomFull->setThreshold(min(0.9, spectrumTop->getThreshold() + 0.01));
-}
-
-void increaseSpectrumThreshold() {
-  spectrumTop->setThreshold(max(0.3, spectrumTop->getThreshold() - 0.01));
-  spectrumBottom->setThreshold(max(0.3, spectrumTop->getThreshold() - 0.01));
-  spectrumTopFull->setThreshold(max(0.3, spectrumTop->getThreshold() - 0.01));
-  spectrumBottomFull->setThreshold(max(0.3, spectrumTop->getThreshold() - 0.01));
-}
-
-void increaseSpectrumHue() {
-  if (currentSpectrumHue != 255) {
-    currentSpectrumHue = (currentSpectrumHue + 5) % 256;
-    spectrumTop->setHue(currentSpectrumHue);
-    spectrumBottom->setHue(currentSpectrumHue);
-    spectrumTopFull->setHue(currentSpectrumHue);
-    spectrumBottomFull->setHue(currentSpectrumHue);
-  }
-}
-
-void decreaseSpectrumHue() {
-  if (currentSpectrumHue != 0) {
-    currentSpectrumHue = (currentSpectrumHue - 5) % 256;
-    FastLED.setBrightness(currentBrightness);
-  }
-}
-
 void setAll(CRGB color) {
   for (int i=0; i<NUM_LEDS; i++) {
     leds[i] = color;
@@ -354,30 +365,12 @@ void changeAllHues(uint8_t hue) {
     streaks[i]->setRandomHue(false);
     streaks[i]->setHue(hue);
   }
-
-  spectrumTop->setHue(hue);
-  spectrumTop->setTravel(0);
-  spectrumBottom->setHue(hue);
-  spectrumBottom->setTravel(0);
-  spectrumTopFull->setHue(hue);
-  spectrumTopFull->setTravel(0);
-  spectrumBottomFull->setHue(hue);
-  spectrumBottomFull->setTravel(0);
 }
 
 void defaultAllHues() {
   for (int i=0;i<NUM_STREAKS;i++) {
     streaks[i]->setRandomHue(true);
   }
-
-  spectrumTop->setHue(currentSpectrumHue);
-  spectrumTop->setTravel(100);
-  spectrumBottom->setHue(currentSpectrumHue);
-  spectrumBottom->setTravel(100);
-  spectrumTopFull->setHue(currentSpectrumHue);
-  spectrumTopFull->setTravel(100);
-  spectrumBottomFull->setHue(currentSpectrumHue);
-  spectrumBottomFull->setTravel(100);
 }
 
 uint8_t readHue() {
@@ -453,3 +446,65 @@ uint16_t xy2Pos(uint16_t x, uint16_t y) {
 
   return pos;
 }
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// NOTE DETECTION
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+void noteDetectionSetup() {
+  pinMode(AUDIO_INPUT_PIN, INPUT);
+  analogReadResolution(10);
+  analogReadAveraging(16);
+  arm_cfft_radix4_init_f32(&fft_inst, fftSize, 0, 1);
+  samplingTimer.begin(samplingCallback, sampleIntervalMs);
+}
+
+void noteDetectionLoop() {
+  // copy the last N samples into a buffer
+  memcpy(sampleBuffer, samples + (sampleCounter + 1), sizeof(float) * sampleCount);
+
+  // FFT magic
+  arm_cfft_radix4_f32(&fft_inst, sampleBuffer);
+  arm_cmplx_mag_f32(sampleBuffer, magnitudes, fftSize);
+
+  for (uint_fast16_t i=0; i<noteCount; i++) {
+    noteMagnatudes[i] = 0;
+  }
+
+  for (uint_fast16_t i=1; i<fftSize/2; i++) {  // ignore top half of the FFT results
+    float frequency = i * (fftBinSize);
+    int note = roundf(12 * (log(frequency / middleA) / log(2))) + notesBelowMiddleA;
+
+    if (note < 0) {
+      continue;
+    }
+
+    note = note % noteCount;
+    noteMagnatudes[note] = max(noteMagnatudes[note], magnitudes[i]);
+  }  
+}
+
+void samplingCallback() {
+  // Read from the ADC and store the sample data
+  float sampleData = (float)analogRead(AUDIO_INPUT_PIN);
+
+  // storing the data twice in the ring buffer array allows us to do a single memcopy
+  // to get an ordered buffer of the last N samples
+  uint_fast16_t sampleIndex = (sampleCounter) * 2;
+  uint_fast16_t sampleIndex2 = sampleIndex + sampleCount;
+  samples[sampleIndex] = sampleData;
+  samples[sampleIndex2] = sampleData;
+
+  // Complex FFT functions require a coefficient for the imaginary part of the
+  // input.  Since we only have real data, set this coefficient to zero.
+  samples[sampleIndex+1] = 0.0;
+  samples[sampleIndex2+1] = 0.0;
+
+  sampleCounter++;
+  sampleCounter = sampleCounter % fftSize;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// \ NOTE DETECTION
+////////////////////////////////////////////////////////////////////////////////////////////////
