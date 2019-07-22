@@ -203,10 +203,18 @@ void setup() {
   Serial.println("setup complete");
 }
 
+uint32_t loggingTimestamp = 0;
+
 // LOOP
 void loop() {
   clear();  // this just sets the array, no reason it can't be at the top
   unsigned long currentTime = millis();
+
+  // put things we want to log here
+  if (currentTime > loggingTimestamp + 5000) {
+    loggingTimestamp = currentTime;
+
+  }
 
   if (currentTime > buttonTimestamp + 500) {
     // Serial.println(touchRead(CONTROL_UP));
