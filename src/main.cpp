@@ -130,12 +130,6 @@ Spectrum2 * spectrum2;
 Spectrum2 * spectrum3;
 Spectrum2 * spectrum4;
 
-/// SOME SHIT
-Visualization * pinkNotes;
-float threshold;
-float peak;
-///\\\ SOME SHIT
-
 void setup() {
   delay(2000);
 
@@ -145,9 +139,6 @@ void setup() {
   randomSeed(analogRead(14));
 
   noteDetectionSetup();
-
-  // SOME SHIT
-  pinkNotes = new Visualization(noteCount, 1, pinkHue, SATURATION, leds);
 
   // SETUP LEDS
   FastLED.addLeds<NEOPIXEL, DISPLAY_LED_PIN>(leds, NUM_LEDS).setCorrection( 0xFFD08C );;
