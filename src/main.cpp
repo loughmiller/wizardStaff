@@ -35,8 +35,11 @@ using namespace std;
 #define BATTERY_LOAD_OFFSET 1.07
 
 #define MODES 3
+#define STEAL_COLOR 0
+#define CHANGE_BRIGHTNESS 1
+#define CHANGE_DENSITY 2
 
-#define BRIGHTNESS 224
+#define BRIGHTNESS 208
 #define SATURATION 244
 #define NUM_STREAKS 3
 
@@ -78,6 +81,8 @@ unsigned long batteryTimestamp = 0;
 
 CHSV blueBatteryMeterColor(blueHue, SATURATION, 64);
 CHSV redBatteryMeeterColor(0, 255, 64);
+
+CHSV pinkMeterColor(pinkHue, SATURATION, 255);
 
 Streak * streaks[NUM_STREAKS];
 Sparkle * sparkle;
@@ -228,16 +233,20 @@ void loop() {
 
     if (touchRead(CONTROL_UP) > 4000) {
       switch(currentMode) {
-        case 0: stealColor();
-        case 1: increaseBrightness();
+        case STEAL_COLOR: stealColor();
+          break;
+        case CHANGE_BRIGHTNESS: increaseBrightness();
+          break;
         // case 2: increaseSpectrumThreshold();
       }
     }
 
     if (touchRead(CONTROL_DOWN) > 4000) {
       switch(currentMode) {
-        case 0: clearStolenColor();
-        case 1: decreaseBrightness();
+        case STEAL_COLOR: clearStolenColor();
+          break;
+        case CHANGE_BRIGHTNESS: decreaseBrightness();
+          break;
         // case 2: decreaseSpectrumThreshold();
       }
     }
@@ -322,6 +331,11 @@ void loop() {
   }
 
   sparkle->display();
+
+  // BRIGHTNESS GAUGE
+  if (currentMode == CHANGE_BRIGHTNESS) {
+    displayGauge(3, 0, 15, pinkMeterColor, ((float)currentBrightness)/240.0);
+  }
 
   FastLED.show();
 }
@@ -465,7 +479,7 @@ uint16_t xy2Pos(uint16_t x, uint16_t y) {
 
 void displayGauge(uint_fast16_t x, uint_fast16_t yTop, uint_fast16_t length, CHSV color, float value) {
   for (uint_fast16_t i = 0; i < length; i++) {
-    if (value >= (length - i) / length) {
+    if (value >= (float)(length - i) / (float)length) {
       leds[xy2Pos(x, yTop + i)] = color;
     }
   }
