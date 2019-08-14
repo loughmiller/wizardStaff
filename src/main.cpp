@@ -41,9 +41,9 @@ using namespace std;
 
 #define BRIGHTNESS 208
 #define SATURATION 244
-#define NUM_STREAKS 3
+#define NUM_STREAKS 4
 
-#define BUTTON_VALUE 128
+#define BUTTON_VALUE 64
 
 uint8_t pinkHue = 240;
 uint8_t blueHue = 137;
@@ -76,6 +76,7 @@ void decreaseDensity();
 uint_fast8_t currentMode = 0;
 uint_fast8_t currentBrightness = BRIGHTNESS;
 CHSV currentModeColor(((256/MODES) * currentMode) + pinkHue, SATURATION, BUTTON_VALUE);
+bool colorStolen = false;
 unsigned long buttonTimestamp = 0;
 
 uint16_t batteryReading = 2000;
@@ -238,8 +239,6 @@ void loop() {
 
     if (touchRead(CONTROL_UP) > 4000) {
       switch(currentMode) {
-        case STEAL_COLOR: stealColor();
-          break;
         case CHANGE_BRIGHTNESS: increaseBrightness();
           break;
         case CHANGE_DENSITY: increaseDensity();
@@ -248,7 +247,12 @@ void loop() {
 
     if (touchRead(CONTROL_DOWN) > 4000) {
       switch(currentMode) {
-        case STEAL_COLOR: clearStolenColor();
+        case STEAL_COLOR:
+          if (colorStolen) {
+            clearStolenColor();
+          } else {
+            stealColor();
+          }
           break;
         case CHANGE_BRIGHTNESS: decreaseBrightness();
           break;
@@ -308,8 +312,10 @@ void loop() {
   leds[xy2Pos(2, 13)] = currentModeColor;
 
   // UP
-  leds[xy2Pos(1, 21)] = CHSV(pinkHue, SATURATION, BUTTON_VALUE);
-  leds[xy2Pos(2, 21)] = CHSV(pinkHue, SATURATION, BUTTON_VALUE);
+  if (currentMode != STEAL_COLOR) {
+    leds[xy2Pos(1, 21)] = CHSV(pinkHue, SATURATION, BUTTON_VALUE);
+    leds[xy2Pos(2, 21)] = CHSV(pinkHue, SATURATION, BUTTON_VALUE);
+  }
 
   // DOWN
   leds[xy2Pos(1, 28)] = CHSV(blueHue, SATURATION, BUTTON_VALUE);
@@ -358,10 +364,12 @@ void stealColor() {
   Serial.println(hue);
   stealColorAnimation(hue);
   changeAllHues(hue);
+  colorStolen = true;
 }
 
 void clearStolenColor() {
   Serial.println("Clear Color");
+  colorStolen = false;
   defaultAllHues();
 }
 
