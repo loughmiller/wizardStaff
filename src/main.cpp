@@ -69,6 +69,8 @@ void stealColor();
 void clearStolenColor();
 void increaseBrightness();
 void decreaseBrightness();
+void increaseDensity();
+void decreaseDensity();
 
 // GLOBALS (OMG - WTF?)
 uint_fast8_t currentMode = 0;
@@ -83,6 +85,7 @@ CHSV blueBatteryMeterColor(blueHue, SATURATION, 64);
 CHSV redBatteryMeeterColor(0, 255, 64);
 
 CHSV pinkMeterColor(pinkHue, SATURATION, 255);
+CHSV blueMeterColor(blueHue, SATURATION, 255);
 
 Streak * streaks[NUM_STREAKS];
 Sparkle * sparkle;
@@ -187,17 +190,17 @@ void setup() {
   Serial.println("Sparkles!");
 
   spectrum1 = new Spectrum2(COLUMNS, ROWS, (ROWS / 4) - 1, noteCount,
-    pinkHue, SATURATION, true, 100, leds);
+    pinkHue, SATURATION, true, leds);
   // spectrum2 = new Spectrum2(COLUMNS, ROWS, (ROWS / 4), noteCount,
-  //   pinkHue, SATURATION, false, 100, leds);
+  //   pinkHue, SATURATION, false, leds);
   spectrum2 = new Spectrum2(COLUMNS, ROWS, (ROWS / 2) - 1, noteCount,
-    pinkHue, SATURATION, true, 100, leds);
+    pinkHue, SATURATION, true, leds);
   spectrum3 = new Spectrum2(COLUMNS, ROWS, ((ROWS / 4) * 3) - 1 , noteCount,
-    pinkHue, SATURATION, true, 100, leds);
+    pinkHue, SATURATION, true, leds);
   // spectrum4 = new Spectrum2(COLUMNS, ROWS, (ROWS / 4) * 3, noteCount,
-  //   pinkHue, SATURATION, false, 100, leds);
+  //   pinkHue, SATURATION, false, leds);
   spectrum4 = new Spectrum2(COLUMNS, ROWS, ROWS - 1, noteCount,
-    pinkHue, SATURATION, true, 100, leds);
+    pinkHue, SATURATION, true, leds);
 
   defaultAllHues();
   Serial.println("setup complete");
@@ -214,12 +217,15 @@ void loop() {
   if (currentTime > loggingTimestamp + 5000) {
     loggingTimestamp = currentTime;
 
+    Serial.println(spectrum1->getDensity());
   }
 
   if (currentTime > buttonTimestamp + 500) {
-    // Serial.println(touchRead(CONTROL_UP));
-    // Serial.println(touchRead(CONTROL_DOWN));
-    // Serial.println(touchRead(CONTROL_MODE));
+    Serial.print(touchRead(CONTROL_UP));
+    Serial.print(" - ");
+    Serial.print(touchRead(CONTROL_DOWN));
+    Serial.print(" - ");
+    Serial.println(touchRead(CONTROL_MODE));
 
     buttonTimestamp = currentTime;
 
@@ -236,7 +242,7 @@ void loop() {
           break;
         case CHANGE_BRIGHTNESS: increaseBrightness();
           break;
-        // case 2: increaseSpectrumThreshold();
+        case CHANGE_DENSITY: increaseDensity();
       }
     }
 
@@ -246,7 +252,7 @@ void loop() {
           break;
         case CHANGE_BRIGHTNESS: decreaseBrightness();
           break;
-        // case 2: decreaseSpectrumThreshold();
+        case CHANGE_DENSITY: decreaseDensity();
       }
     }
   }
@@ -336,6 +342,11 @@ void loop() {
     displayGauge(3, 0, 15, pinkMeterColor, ((float)currentBrightness)/240.0);
   }
 
+  // DENSITY GAUGE
+  if (currentMode == CHANGE_DENSITY) {
+    displayGauge(3, 0, 20, blueMeterColor, spectrum1->getDensity());
+  }
+
   FastLED.show();
 }
 // /LOOP
@@ -362,6 +373,22 @@ void increaseBrightness() {
 void decreaseBrightness() {
   currentBrightness = max((currentBrightness - 16), (uint_fast8_t)16);
   FastLED.setBrightness(currentBrightness);
+}
+
+void increaseDensity() {
+  float newDensity = min(0.8, spectrum1->getDensity() + 0.05);
+  spectrum1->setDensity(newDensity);
+  spectrum2->setDensity(newDensity);
+  spectrum3->setDensity(newDensity);
+  spectrum4->setDensity(newDensity);
+}
+
+void decreaseDensity() {
+  float newDensity = max(0.05, spectrum1->getDensity() - 0.05);
+  spectrum1->setDensity(newDensity);
+  spectrum2->setDensity(newDensity);
+  spectrum3->setDensity(newDensity);
+  spectrum4->setDensity(newDensity);
 }
 
 void setAll(CRGB color) {
