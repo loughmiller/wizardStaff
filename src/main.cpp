@@ -17,9 +17,17 @@ using namespace std;
 #define ROWS 164
 #define COLUMNS 8
 #define NUM_LEDS (ROWS*COLUMNS)
-#define CONTROL_UP 1
-#define CONTROL_DOWN 0
+
+// BUTTONS
+#define CONTROL_UP 0
+#define CONTROL_DOWN 1
 #define CONTROL_MODE 23
+#define BUTTON_POWER_PIN 11
+#define DEBOUNCE_TIME 500
+#define BUTTON_THRESHOLD 1.1
+#define BUTTON_VALUE 64
+
+
 #define SENSOR_LED_PIN 16
 // #define DISPLAY_LED_PIN 32  Teensy 3.6 layout
 #define DISPLAY_LED_PIN 12
@@ -43,7 +51,6 @@ using namespace std;
 #define SATURATION 244
 #define NUM_STREAKS 4
 
-#define BUTTON_VALUE 64
 
 uint8_t pinkHue = 240;
 uint8_t blueHue = 137;
@@ -74,6 +81,10 @@ void decreaseDensity();
 
 // GLOBALS (OMG - WTF?)
 uint_fast8_t currentMode = 0;
+uint_fast16_t modeAvg;
+uint_fast16_t upAvg;
+uint_fast16_t downAvg;
+
 uint_fast8_t currentBrightness = BRIGHTNESS;
 CHSV currentModeColor(((256/MODES) * currentMode) + pinkHue, SATURATION, BUTTON_VALUE);
 bool colorStolen = false;
@@ -160,6 +171,8 @@ void setup() {
   pinMode(CONTROL_UP, INPUT);
   pinMode(CONTROL_DOWN, INPUT);
   pinMode(CONTROL_MODE, INPUT);
+  pinMode(BUTTON_POWER_PIN, OUTPUT);
+  digitalWrite(BUTTON_POWER_PIN, HIGH);
 
   // COLOR SENSOR SETUP
   if (tcs.begin()) {
@@ -204,6 +217,11 @@ void setup() {
     pinkHue, SATURATION, true, leds);
 
   defaultAllHues();
+
+  modeAvg = touchRead(CONTROL_MODE) * BUTTON_THRESHOLD;
+  upAvg = touchRead(CONTROL_UP) * BUTTON_THRESHOLD;
+  downAvg = touchRead(CONTROL_DOWN) * BUTTON_THRESHOLD;
+
   Serial.println("setup complete");
 }
 
@@ -221,23 +239,26 @@ void loop() {
     Serial.println(spectrum1->getDensity());
   }
 
-  if (currentTime > buttonTimestamp + 500) {
-    Serial.print(touchRead(CONTROL_UP));
-    Serial.print(" - ");
-    Serial.print(touchRead(CONTROL_DOWN));
-    Serial.print(" - ");
-    Serial.println(touchRead(CONTROL_MODE));
+  if (currentTime > buttonTimestamp + DEBOUNCE_TIME) {
+    uint_fast16_t modeTouch = touchRead(CONTROL_MODE);
+    modeAvg = (float)modeAvg * 0.95 + (float)modeTouch * 0.05;
 
-    buttonTimestamp = currentTime;
+    uint_fast16_t upTouch = touchRead(CONTROL_UP);
+    upAvg = (float)upAvg * 0.95 + (float)upTouch * 0.05;
 
-    if (touchRead(CONTROL_MODE) > 4000) {
+    uint_fast16_t downTouch = touchRead(CONTROL_DOWN);
+    downAvg = (float)downAvg * 0.95 + (float)downTouch * 0.05;
+
+    if ((float)modeTouch/(float)modeAvg > BUTTON_THRESHOLD) {
+      buttonTimestamp = currentTime;
       currentMode = (currentMode + 1) % MODES;
       currentModeColor.hue = (256/MODES) * currentMode;
       Serial.print("Change Mode to ");
       Serial.println(currentMode);
     }
 
-    if (touchRead(CONTROL_UP) > 4000) {
+    if ((float)upTouch/(float)upAvg > BUTTON_THRESHOLD) {
+      buttonTimestamp = currentTime;
       switch(currentMode) {
         case CHANGE_BRIGHTNESS: increaseBrightness();
           break;
@@ -245,7 +266,8 @@ void loop() {
       }
     }
 
-    if (touchRead(CONTROL_DOWN) > 4000) {
+    if ((float)downTouch/(float)downAvg > BUTTON_THRESHOLD) {
+      buttonTimestamp = currentTime;
       switch(currentMode) {
         case STEAL_COLOR:
           if (colorStolen) {
