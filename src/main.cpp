@@ -85,6 +85,9 @@ uint_fast16_t modeAvg;
 uint_fast16_t upAvg;
 uint_fast16_t downAvg;
 
+uint_fast32_t loops = 0;
+uint_fast32_t setupTime = 0;
+
 uint_fast8_t currentBrightness = BRIGHTNESS;
 CHSV currentModeColor(((256/MODES) * currentMode) + pinkHue, SATURATION, BUTTON_VALUE);
 bool colorStolen = false;
@@ -223,12 +226,14 @@ void setup() {
   downAvg = touchRead(CONTROL_DOWN) * BUTTON_THRESHOLD;
 
   Serial.println("setup complete");
+  setupTime = millis();
 }
 
 uint32_t loggingTimestamp = 0;
 
 // LOOP
 void loop() {
+  loops++;
   clear();  // this just sets the array, no reason it can't be at the top
   unsigned long currentTime = millis();
 
@@ -236,7 +241,8 @@ void loop() {
   if (currentTime > loggingTimestamp + 5000) {
     loggingTimestamp = currentTime;
 
-    Serial.println(spectrum1->getDensity());
+    Serial.print("Frame Rate: ");
+    Serial.println(loops / ((currentTime - setupTime) / 1000));
   }
 
   if (currentTime > buttonTimestamp + DEBOUNCE_TIME) {
