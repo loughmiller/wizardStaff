@@ -24,7 +24,7 @@ using namespace std;
 #define CONTROL_MODE 23
 #define BUTTON_POWER_PIN 11
 #define DEBOUNCE_TIME 500
-#define BUTTON_THRESHOLD 1.1
+#define BUTTON_THRESHOLD 1.08
 #define BUTTON_VALUE 64
 
 
@@ -46,6 +46,8 @@ using namespace std;
 #define STEAL_COLOR 0
 #define CHANGE_BRIGHTNESS 1
 #define CHANGE_DENSITY 2
+
+#define GAUGE_COLUMN 1
 
 #define BRIGHTNESS 208
 #define SATURATION 244
@@ -247,13 +249,13 @@ void loop() {
 
   if (currentTime > buttonTimestamp + DEBOUNCE_TIME) {
     uint_fast16_t modeTouch = touchRead(CONTROL_MODE);
-    modeAvg = (float)modeAvg * 0.95 + (float)modeTouch * 0.05;
+    modeAvg = (float)modeAvg * 0.99 + (float)modeTouch * 0.01;
 
     uint_fast16_t upTouch = touchRead(CONTROL_UP);
-    upAvg = (float)upAvg * 0.95 + (float)upTouch * 0.05;
+    upAvg = (float)upAvg * 0.99 + (float)upTouch * 0.01;
 
     uint_fast16_t downTouch = touchRead(CONTROL_DOWN);
-    downAvg = (float)downAvg * 0.95 + (float)downTouch * 0.05;
+    downAvg = (float)downAvg * 0.99 + (float)downTouch * 0.01;
 
     if ((float)modeTouch/(float)modeAvg > BUTTON_THRESHOLD) {
       buttonTimestamp = currentTime;
@@ -287,6 +289,12 @@ void loop() {
         case CHANGE_DENSITY: decreaseDensity();
       }
     }
+
+    // Serial.print(modeTouch);
+    // Serial.print("\t");
+    // Serial.print(modeAvg);
+    // Serial.print("\t");
+    // Serial.println((float)modeTouch/(float)modeAvg);
   }
 
   // BATTERY READ
@@ -331,23 +339,23 @@ void loop() {
     batteryMeterColor = redBatteryMeeterColor;
   }
 
-  displayGauge(2, 154, 10, batteryMeterColor, batteryPercentage);
+  displayGauge(GAUGE_COLUMN, 154, 10, batteryMeterColor, batteryPercentage);
 
 
   // BUTTON INDICATORS
   // CHANGE MODE
-  leds[xy2Pos(1, 13)] = currentModeColor;
-  leds[xy2Pos(2, 13)] = currentModeColor;
+  leds[xy2Pos(GAUGE_COLUMN, 35)] = currentModeColor;
+  leds[xy2Pos(GAUGE_COLUMN, 36)] = currentModeColor;
 
   // UP
   if (currentMode != STEAL_COLOR) {
-    leds[xy2Pos(1, 21)] = CHSV(pinkHue, SATURATION, BUTTON_VALUE);
-    leds[xy2Pos(2, 21)] = CHSV(pinkHue, SATURATION, BUTTON_VALUE);
+    leds[xy2Pos(GAUGE_COLUMN, 14)] = CHSV(pinkHue, SATURATION, BUTTON_VALUE);
+    leds[xy2Pos(GAUGE_COLUMN, 15)] = CHSV(pinkHue, SATURATION, BUTTON_VALUE);
   }
 
   // DOWN
-  leds[xy2Pos(1, 28)] = CHSV(blueHue, SATURATION, BUTTON_VALUE);
-  leds[xy2Pos(2, 28)] = CHSV(blueHue, SATURATION, BUTTON_VALUE);
+  leds[xy2Pos(GAUGE_COLUMN, 21)] = CHSV(blueHue, SATURATION, BUTTON_VALUE);
+  leds[xy2Pos(GAUGE_COLUMN, 22)] = CHSV(blueHue, SATURATION, BUTTON_VALUE);
 
   // MAIN DISPLAY
 
@@ -373,12 +381,12 @@ void loop() {
 
   // BRIGHTNESS GAUGE
   if (currentMode == CHANGE_BRIGHTNESS) {
-    displayGauge(3, 0, 15, pinkMeterColor, ((float)currentBrightness)/240.0);
+    displayGauge(GAUGE_COLUMN, 0, 15, pinkMeterColor, ((float)currentBrightness)/240.0);
   }
 
   // DENSITY GAUGE
   if (currentMode == CHANGE_DENSITY) {
-    displayGauge(3, 0, 20, blueMeterColor, spectrum1->getDensity());
+    displayGauge(GAUGE_COLUMN, 0, 10, blueMeterColor, spectrum1->getDensity());
   }
 
   FastLED.show();
