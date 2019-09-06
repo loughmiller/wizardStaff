@@ -24,7 +24,7 @@ using namespace std;
 #define CONTROL_MODE 23
 #define BUTTON_POWER_PIN 11
 #define DEBOUNCE_TIME 500
-#define BUTTON_THRESHOLD 1.08
+#define BUTTON_THRESHOLD 1.09
 #define BUTTON_VALUE 64
 
 
@@ -247,15 +247,19 @@ void loop() {
     Serial.println(loops / ((currentTime - setupTime) / 1000));
   }
 
+  uint_fast16_t modeTouch = touchRead(CONTROL_MODE);
+  modeAvg = (float)modeAvg * 0.98 + (float)modeTouch * 0.02;
+
+  uint_fast16_t upTouch = touchRead(CONTROL_UP);
+  upAvg = (float)upAvg * 0.98 + (float)upTouch * 0.02;
+
+  uint_fast16_t downTouch = touchRead(CONTROL_DOWN);
+  downAvg = (float)downAvg * 0.98 + (float)downTouch * 0.02;
+
   if (currentTime > buttonTimestamp + DEBOUNCE_TIME) {
-    uint_fast16_t modeTouch = touchRead(CONTROL_MODE);
-    modeAvg = (float)modeAvg * 0.99 + (float)modeTouch * 0.01;
-
-    uint_fast16_t upTouch = touchRead(CONTROL_UP);
-    upAvg = (float)upAvg * 0.99 + (float)upTouch * 0.01;
-
-    uint_fast16_t downTouch = touchRead(CONTROL_DOWN);
-    downAvg = (float)downAvg * 0.99 + (float)downTouch * 0.01;
+    Serial.print(downTouch);
+    Serial.print("\t");
+    Serial.println(downAvg);
 
     if ((float)modeTouch/(float)modeAvg > BUTTON_THRESHOLD) {
       buttonTimestamp = currentTime;
