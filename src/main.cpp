@@ -480,7 +480,6 @@ void defaultAllHues() {
 uint8_t readHue() {
   uint16_t clear, red, green, blue;
   float r, g, b;
-  CRGB c;
 
   digitalWrite(SENSOR_LED_PIN, HIGH);
   delay(200);
@@ -495,7 +494,6 @@ uint8_t readHue() {
 }
 
 uint8_t calcHue(float r, float g, float b) {
-  CRGB maxColor;
   float minC, maxC, delta, hue;
 
   minC = min(r, min(g, b));
