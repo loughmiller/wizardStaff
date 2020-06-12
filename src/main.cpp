@@ -16,7 +16,10 @@ using namespace std;
 
 #define ROWS 164
 #define COLUMNS 8
-#define NUM_LEDS (ROWS*COLUMNS)
+#define NUM_LEDS 1312
+#define NUM_STRIPS 4
+#define NUM_LEDS_PER_STRIP 328
+
 
 // BUTTONS
 #define CONTROL_UP 0
@@ -29,9 +32,7 @@ using namespace std;
 
 
 #define SENSOR_LED_PIN 16
-// #define DISPLAY_LED_PIN 32  Teensy 3.6 layout
-#define DISPLAY_LED_PIN 12
-#define BATTERY_PIN A7
+#define BATTERY_PIN A5
 #define AUDIO_INPUT_PIN A8        // Input pin for audio data.
 
 #define ANALOG_RATIO 310.3
@@ -161,7 +162,13 @@ void setup() {
   noteDetectionSetup();
 
   // SETUP LEDS
-  FastLED.addLeds<NEOPIXEL, DISPLAY_LED_PIN>(leds, NUM_LEDS).setCorrection( 0xFFD08C );;
+  // Parallel  Pin layouts on the teensy 3/3.1:
+  // Connector:    1, 2,3,4,5, 6, 7,8
+  // WS2811_PORTD: 2,14,7,8,6,20,21,5  << THIS IS US
+  // // WS2811_PORTC: 15,22,23,9,10,13,11,12,28,27,29,30 (these last 4 are pads on the bottom of the teensy)
+  // // WS2811_PORTDC: 2,14,7,8,6,20,21,5,15,22,23,9,10,13,11,12 - 16 way parallel
+
+  FastLED.addLeds<WS2811_PORTD,NUM_STRIPS>(leds, NUM_LEDS_PER_STRIP);
   FastLED.setDither(1);
   FastLED.setMaxPowerInVoltsAndMilliamps(5, 3000);
   FastLED.setBrightness(currentBrightness);
