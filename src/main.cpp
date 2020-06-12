@@ -1,8 +1,6 @@
 #include <Arduino.h>
 #include <FastLED.h>
 #include <Wire.h>
-#include <Adafruit_TCS34725.h>
-#include <Adafruit_Sensor.h>
 #define ARM_MATH_CM4
 #include <arm_math.h>
 #include <algorithm>    // std::sort
@@ -20,19 +18,7 @@ using namespace std;
 #define NUM_STRIPS 4
 #define NUM_LEDS_PER_STRIP 328
 
-
-// BUTTONS
-#define CONTROL_UP 0
-#define CONTROL_DOWN 1
-#define CONTROL_MODE 23
-#define BUTTON_POWER_PIN 11
-#define DEBOUNCE_TIME 500
-#define BUTTON_THRESHOLD 1.09
-#define BUTTON_VALUE 64
-
-
-#define SENSOR_LED_PIN 16
-#define BATTERY_PIN A5
+#define BATTERY_PIN A5            // Input pin for reading battery level
 #define AUDIO_INPUT_PIN A8        // Input pin for audio data.
 
 #define ANALOG_RATIO 310.3
@@ -43,17 +29,11 @@ using namespace std;
 #define BATTERY_READ_INTERVAL 120000
 #define BATTERY_LOAD_OFFSET 1.07
 
-#define MODES 3
-#define STEAL_COLOR 0
-#define CHANGE_BRIGHTNESS 1
-#define CHANGE_DENSITY 2
-
 #define GAUGE_COLUMN 1
 
 #define BRIGHTNESS 208
 #define SATURATION 244
 #define NUM_STREAKS 3
-
 
 uint8_t pinkHue = 240;
 uint8_t blueHue = 137;
@@ -66,7 +46,6 @@ CRGB off = 0x000000;
 // FUNTION DEFINITIONS
 void clear();
 void setAll(CRGB color);
-uint8_t readHue();
 uint8_t calcHue(float r, float g, float b);
 void defaultAllHues();
 void changeAllHues(uint8_t hue);
@@ -83,18 +62,11 @@ void increaseDensity();
 void decreaseDensity();
 
 // GLOBALS (OMG - WTF?)
-uint_fast8_t currentMode = 0;
-uint_fast16_t modeAvg;
-uint_fast16_t upAvg;
-uint_fast16_t downAvg;
-
 uint_fast32_t loops = 0;
 uint_fast32_t setupTime = 0;
 
 uint_fast8_t currentBrightness = BRIGHTNESS;
-CHSV currentModeColor(((256/MODES) * currentMode) + pinkHue, SATURATION, BUTTON_VALUE);
 bool colorStolen = false;
-unsigned long buttonTimestamp = 0;
 
 uint16_t batteryReading = 2000;
 unsigned long batteryTimestamp = 0;
@@ -107,10 +79,6 @@ CHSV blueMeterColor(blueHue, SATURATION, 255);
 
 Streak * streaks[NUM_STREAKS];
 Sparkle * sparkle;
-
-// COLOR SENSOR
-Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // NOTE DETECTION
@@ -178,25 +146,6 @@ void setup() {
   FastLED.show();
   FastLED.delay(1000);
 
-  // COLOR SENSOR
-  pinMode(SENSOR_LED_PIN, OUTPUT);
-  pinMode(CONTROL_UP, INPUT);
-  pinMode(CONTROL_DOWN, INPUT);
-  pinMode(CONTROL_MODE, INPUT);
-  pinMode(BUTTON_POWER_PIN, OUTPUT);
-  digitalWrite(BUTTON_POWER_PIN, HIGH);
-
-  // COLOR SENSOR SETUP
-  if (tcs.begin()) {
-    Serial.println("Found color sensor");
-    digitalWrite(SENSOR_LED_PIN, LOW);
-  } else {
-    Serial.println("No color sensor found!");
-    setAll(0x040000);
-    FastLED.show();
-    FastLED.delay(30000);
-  }
-
   // DISPLAY STUFF
   clear();
   FastLED.show();
@@ -230,10 +179,6 @@ void setup() {
 
   defaultAllHues();
 
-  modeAvg = touchRead(CONTROL_MODE) * BUTTON_THRESHOLD;
-  upAvg = touchRead(CONTROL_UP) * BUTTON_THRESHOLD;
-  downAvg = touchRead(CONTROL_DOWN) * BUTTON_THRESHOLD;
-
   Serial.println("setup complete");
   setupTime = millis();
 }
@@ -254,59 +199,6 @@ void loop() {
     Serial.println(loops / ((currentTime - setupTime) / 1000));
   }
 
-  uint_fast16_t modeTouch = touchRead(CONTROL_MODE);
-  modeAvg = (float)modeAvg * 0.98 + (float)modeTouch * 0.02;
-
-  uint_fast16_t upTouch = touchRead(CONTROL_UP);
-  upAvg = (float)upAvg * 0.98 + (float)upTouch * 0.02;
-
-  uint_fast16_t downTouch = touchRead(CONTROL_DOWN);
-  downAvg = (float)downAvg * 0.98 + (float)downTouch * 0.02;
-
-  if (currentTime > buttonTimestamp + DEBOUNCE_TIME) {
-    Serial.print(downTouch);
-    Serial.print("\t");
-    Serial.println(downAvg);
-
-    if ((float)modeTouch/(float)modeAvg > BUTTON_THRESHOLD) {
-      buttonTimestamp = currentTime;
-      currentMode = (currentMode + 1) % MODES;
-      currentModeColor.hue = (256/MODES) * currentMode;
-      Serial.print("Change Mode to ");
-      Serial.println(currentMode);
-    }
-
-    if ((float)upTouch/(float)upAvg > BUTTON_THRESHOLD) {
-      buttonTimestamp = currentTime;
-      switch(currentMode) {
-        case CHANGE_BRIGHTNESS: increaseBrightness();
-          break;
-        case CHANGE_DENSITY: increaseDensity();
-      }
-    }
-
-    if ((float)downTouch/(float)downAvg > BUTTON_THRESHOLD) {
-      buttonTimestamp = currentTime;
-      switch(currentMode) {
-        case STEAL_COLOR:
-          if (colorStolen) {
-            clearStolenColor();
-          } else {
-            stealColor();
-          }
-          break;
-        case CHANGE_BRIGHTNESS: decreaseBrightness();
-          break;
-        case CHANGE_DENSITY: decreaseDensity();
-      }
-    }
-
-    // Serial.print(modeTouch);
-    // Serial.print("\t");
-    // Serial.print(modeAvg);
-    // Serial.print("\t");
-    // Serial.println((float)modeTouch/(float)modeAvg);
-  }
 
   // BATTERY READ
   if (currentTime > batteryTimestamp + BATTERY_READ_INTERVAL) {
@@ -353,21 +245,6 @@ void loop() {
   displayGauge(GAUGE_COLUMN, 154, 10, batteryMeterColor, batteryPercentage);
 
 
-  // BUTTON INDICATORS
-  // CHANGE MODE
-  leds[xy2Pos(GAUGE_COLUMN, 35)] = currentModeColor;
-  leds[xy2Pos(GAUGE_COLUMN, 36)] = currentModeColor;
-
-  // UP
-  if (currentMode != STEAL_COLOR) {
-    leds[xy2Pos(GAUGE_COLUMN, 14)] = CHSV(pinkHue, SATURATION, BUTTON_VALUE);
-    leds[xy2Pos(GAUGE_COLUMN, 15)] = CHSV(pinkHue, SATURATION, BUTTON_VALUE);
-  }
-
-  // DOWN
-  leds[xy2Pos(GAUGE_COLUMN, 21)] = CHSV(blueHue, SATURATION, BUTTON_VALUE);
-  leds[xy2Pos(GAUGE_COLUMN, 22)] = CHSV(blueHue, SATURATION, BUTTON_VALUE);
-
   // MAIN DISPLAY
 
   ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -390,16 +267,6 @@ void loop() {
 
   sparkle->display();
 
-  // BRIGHTNESS GAUGE
-  if (currentMode == CHANGE_BRIGHTNESS) {
-    displayGauge(GAUGE_COLUMN, 0, 15, pinkMeterColor, ((float)currentBrightness)/240.0);
-  }
-
-  // DENSITY GAUGE
-  if (currentMode == CHANGE_DENSITY) {
-    displayGauge(GAUGE_COLUMN, 0, 10, blueMeterColor, spectrum1->getDensity());
-  }
-
   FastLED.show();
 }
 // /LOOP
@@ -407,7 +274,7 @@ void loop() {
 // ACTIONS
 
 void stealColor() {
-  uint8_t hue = readHue();
+  uint8_t hue = 0;  // Will need to figure this out later
   Serial.print('hue: ');
   Serial.println(hue);
   stealColorAnimation(hue);
@@ -483,22 +350,6 @@ void defaultAllHues() {
   spectrum2->setDrift(-3);
   spectrum3->setDrift(3);
   spectrum4->setDrift(-5);
-}
-
-uint8_t readHue() {
-  uint16_t clear, red, green, blue;
-  float r, g, b;
-
-  digitalWrite(SENSOR_LED_PIN, HIGH);
-  delay(200);
-  tcs.getRawData(&red, &green, &blue, &clear);
-  digitalWrite(SENSOR_LED_PIN, LOW);
-
-  r = (float)red / (float)clear;
-  g = (float)green / (float)clear;
-  b = (float)blue / (float)clear;
-
-  return calcHue(r, g, b);
 }
 
 uint8_t calcHue(float r, float g, float b) {
