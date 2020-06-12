@@ -18,16 +18,17 @@ using namespace std;
 #define NUM_STRIPS 4
 #define NUM_LEDS_PER_STRIP 328
 
-#define BATTERY_PIN A5            // Input pin for reading battery level
 #define AUDIO_INPUT_PIN A8        // Input pin for audio data.
 
+#define BATTERY_PIN A5            // Input pin for reading battery level
+#define NUM_BATTERIES 4
+
+// BATTERY CONSTANTS
 #define ANALOG_RATIO 310.3
-#define BATTERY_SLOPE 0.0043
-#define BATTERY_INTERCEPT -3.1616
 #define BATTERY_APLPHA 0.2
-#define BATTERY_DEAD_READING 675
+#define VOLTAGE_DIVIDER_RATIO 0.096
 #define BATTERY_READ_INTERVAL 120000
-#define BATTERY_LOAD_OFFSET 1.07
+
 
 #define GAUGE_COLUMN 1
 
@@ -70,6 +71,7 @@ bool colorStolen = false;
 
 uint16_t batteryReading = 2000;
 unsigned long batteryTimestamp = 0;
+float batteryPercentage = 100;
 
 CHSV blueBatteryMeterColor(blueHue, SATURATION, 64);
 CHSV redBatteryMeeterColor(0, 255, 64);
@@ -210,6 +212,9 @@ void loop() {
       batteryReading = (uint_fast16_t)((float)batteryReading * BATTERY_APLPHA + (1 - BATTERY_APLPHA) * (float)currentReading);
     }
 
+    // Battery Log:
+    // Timestamp  currentReading  batteryReading, divided voltage, batteryVoltage
+
     batteryTimestamp = currentTime;
     Serial.print(batteryTimestamp);
     Serial.print("\t");
@@ -221,11 +226,41 @@ void loop() {
     Serial.print("\t");
     Serial.print(dividedVoltage);
 
-    float batteryPercentage = ((float)batteryReading * BATTERY_SLOPE) + BATTERY_INTERCEPT;
+    float totalVoltage = dividedVoltage / VOLTAGE_DIVIDER_RATIO;
+    float batteryVoltage = totalVoltage / NUM_BATTERIES;
+    Serial.print("\t");
+    Serial.print(batteryVoltage);
+
+    // %   Voltage
+    // 100	4.1
+    // 95	  4.03
+    // 85	  3.98
+    // 75	  3.87
+    // 65 	3.8
+    // 55	  3.7
+    // 45	  3.6
+    // 35	  3.54
+    // 25	  3.48
+    // 15	  3.39
+    // 5	  3.2
+    // 0	  3
+
+    batteryPercentage = 0;
+    if (batteryVoltage > 3.2) { batteryPercentage = 0.1; }
+    if (batteryVoltage > 3.39) { batteryPercentage = 0.2; }
+    if (batteryVoltage > 3.48) { batteryPercentage = 0.3; }
+    if (batteryVoltage > 3.54) { batteryPercentage = 0.4; }
+    if (batteryVoltage > 3.6) { batteryPercentage = 0.5; }
+    if (batteryVoltage > 3.7) { batteryPercentage = 0.6; }
+    if (batteryVoltage > 3.8) { batteryPercentage = 0.7; }
+    if (batteryVoltage > 3.87) { batteryPercentage = 0.8; }
+    if (batteryVoltage > 3.98) { batteryPercentage = 0.9; }
+    if (batteryVoltage > 4.03) { batteryPercentage = 1; }
+
     Serial.print("\t");
     Serial.println(batteryPercentage);
 
-    if (batteryReading < BATTERY_DEAD_READING) {
+    if (batteryVoltage == 0) {
       Serial.println("");
       Serial.println("Batteries are dead!");
       clear();
@@ -235,7 +270,6 @@ void loop() {
   }
 
   // BATTERY GAUGE
-  float batteryPercentage = ((float)batteryReading * BATTERY_SLOPE) + BATTERY_INTERCEPT;
   CHSV batteryMeterColor = blueBatteryMeterColor;
 
   if (batteryPercentage < 0.2) {
@@ -275,7 +309,7 @@ void loop() {
 
 void stealColor() {
   uint8_t hue = 0;  // Will need to figure this out later
-  Serial.print('hue: ');
+  Serial.print("hue: ");
   Serial.println(hue);
   stealColorAnimation(hue);
   changeAllHues(hue);
