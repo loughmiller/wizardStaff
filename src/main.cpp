@@ -94,7 +94,7 @@ const uint_fast16_t sampleIntervalMs{1000000 / (fftSize * fftBinSize)};  // how 
 
 // FREQUENCY TO NOTE CONSTANTS - CALCULATE HERE: https://docs.google.com/spreadsheets/d/1CPcxGFB7Lm6xJ8CePfCF0qXQEZuhQ-nI1TC4PAiAd80/edit?usp=sharing
 const uint_fast16_t noteCount{40};              // how many notes are we trying to detect
-const uint_fast16_t notesBelowMiddleA{30};      
+const uint_fast16_t notesBelowMiddleA{30};
 
 // NOTE DETECTION GLOBALS
 float samples[sampleCount*2];
@@ -451,7 +451,7 @@ void noteDetectionLoop() {
 
     note = note % noteCount;
     noteMagnatudes[note] = max(noteMagnatudes[note], magnitudes[i]);
-  }  
+  }
 }
 
 void samplingCallback() {
