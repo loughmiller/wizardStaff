@@ -52,7 +52,7 @@ using namespace std;
 
 #define BRIGHTNESS 208
 #define SATURATION 244
-#define NUM_STREAKS 4
+#define NUM_STREAKS 3
 
 
 uint8_t pinkHue = 240;
@@ -205,14 +205,14 @@ void setup() {
   for (uint_fast16_t i=0;i<NUM_STREAKS;i++) {
     streaks[i] = new Streak(COLUMNS, ROWS, greenHue, SATURATION, leds);
     streaks[i]->setRandomHue(true);
-    streaks[i]->setIntervalMinMax(7, 37);
+    streaks[i]->setIntervalMinMax(9, 23);
     streaks[i]->setLengthMinMax(13, 37);
     streaks[i]->inititalize(millis());
   }
 
   Serial.println("Streaks Setup");
 
-  sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 247);
+  sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 2477);
   Serial.println("Sparkles!");
 
   spectrum1 = new Spectrum2(COLUMNS, ROWS, (ROWS / 4) - 1, noteCount,
@@ -408,6 +408,7 @@ void loop() {
 
 void stealColor() {
   uint8_t hue = readHue();
+  Serial.print('hue: ');
   Serial.println(hue);
   stealColorAnimation(hue);
   changeAllHues(hue);
