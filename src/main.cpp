@@ -12,37 +12,48 @@
 
 using namespace std;
 
-#define ROWS 164
-#define COLUMNS 8
-#define NUM_LEDS 1312
-#define NUM_STRIPS 4
-#define NUM_LEDS_PER_STRIP 328
-
-#define AUDIO_INPUT_PIN A8        // Input pin for audio data.
-
-#define BATTERY_PIN A5            // Input pin for reading battery level
-#define NUM_BATTERIES 4
-
-// BATTERY CONSTANTS
-#define ANALOG_RATIO 310.3
-#define BATTERY_APLPHA 0.2
-#define VOLTAGE_DIVIDER_RATIO 0.096
-#define BATTERY_READ_INTERVAL 120000
+// DEFINE PINS HERE
+#define AUDIO_INPUT_PIN A8            // Input pin for audio data.
+#define BATTERY_PIN A5                // Input pin for reading battery level
+// WS2811_PORTD: 2,14,7,8,6,20,21,5   // FastLED parallel output pins
 
 
-#define GAUGE_COLUMN 1
+////////////////////////////////////////////////////////////////////////////////////////////////
+// LED AND VISUALIZATION
+////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define BRIGHTNESS 208
-#define SATURATION 244
-#define NUM_STREAKS 3
+// GEOMETRY CONSTANTS
+const uint_fast8_t rows = 164;
+const uint_fast8_t columns = 8;
+const uint_fast8_t numLEDs = rows * columns;
 
-uint8_t pinkHue = 240;
-uint8_t blueHue = 137;
-uint8_t greenHue = 55;
+// COLORS
+const uint_fast8_t brightness = 208;
+const uint_fast8_t saturation = 244;
 
-
-CRGB leds[NUM_LEDS];
+const uint_fast8_t pinkHue = 240;
+const uint_fast8_t blueHue = 137;
+const uint_fast8_t greenHue = 55;
 CRGB off = 0x000000;
+
+// STATE
+uint_fast8_t currentBrightness = brightness;
+
+// LED display array
+CRGB leds[numLEDs];
+
+// streaks array
+const uint_fast8_t numStreaks = 3;
+Streak * streaks[numStreaks];
+
+// random sparkle object
+Sparkle * sparkle;
+
+// 4 note visualization objects:
+Spectrum2 * spectrum1;
+Spectrum2 * spectrum2;
+Spectrum2 * spectrum3;
+Spectrum2 * spectrum4;
 
 // FUNTION DEFINITIONS
 void clear();
@@ -54,7 +65,39 @@ void stealColorAnimation(uint8_t hue);
 uint16_t xy2Pos(uint16_t x, uint16_t y);
 void displayGauge(uint_fast16_t x, uint_fast16_t yTop, uint_fast16_t length, CHSV color, float value);
 
-// ACTIONS
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// BATTERY
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+// CONSTANTS
+const uint_fast8_t numBatteries = 4;
+
+const float analogRatio = 310.3;
+const float batteryAlpha = 0.2;
+const float voltageDividerRatio = 0.096;
+const uint_fast32_t batteryReadInterval = 120000;
+
+CHSV blueBatteryMeterColor(blueHue, saturation, 64);
+CHSV redBatteryMeeterColor(0, 255, 64);
+
+// STATE
+uint_fast16_t batteryReading = 2000;
+uint_fast32_t batteryTimestamp = 0;
+float batteryPercentage = 100;
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// ACTIONS / CONTROLS
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+// STATE
+uint_fast32_t loops = 0;
+uint_fast32_t setupTime = 0;
+
+bool colorStolen = false;
+
+// FUNCTIONS
 void stealColor();
 void clearStolenColor();
 void increaseBrightness();
@@ -62,25 +105,6 @@ void decreaseBrightness();
 void increaseDensity();
 void decreaseDensity();
 
-// GLOBALS (OMG - WTF?)
-uint_fast32_t loops = 0;
-uint_fast32_t setupTime = 0;
-
-uint_fast8_t currentBrightness = BRIGHTNESS;
-bool colorStolen = false;
-
-uint16_t batteryReading = 2000;
-unsigned long batteryTimestamp = 0;
-float batteryPercentage = 100;
-
-CHSV blueBatteryMeterColor(blueHue, SATURATION, 64);
-CHSV redBatteryMeeterColor(0, 255, 64);
-
-CHSV pinkMeterColor(pinkHue, SATURATION, 255);
-CHSV blueMeterColor(blueHue, SATURATION, 255);
-
-Streak * streaks[NUM_STREAKS];
-Sparkle * sparkle;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // NOTE DETECTION
@@ -112,14 +136,6 @@ void noteDetectionSetup();        // run this once during setup
 void noteDetectionLoop();         // run this once per loop
 void samplingCallback();
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-// \ NOTE DETECTION
-////////////////////////////////////////////////////////////////////////////////////////////////
-
-Spectrum2 * spectrum1;
-Spectrum2 * spectrum2;
-Spectrum2 * spectrum3;
-Spectrum2 * spectrum4;
 
 void setup() {
   delay(2000);
@@ -138,7 +154,9 @@ void setup() {
   // // WS2811_PORTC: 15,22,23,9,10,13,11,12,28,27,29,30 (these last 4 are pads on the bottom of the teensy)
   // // WS2811_PORTDC: 2,14,7,8,6,20,21,5,15,22,23,9,10,13,11,12 - 16 way parallel
 
-  FastLED.addLeds<WS2811_PORTD,NUM_STRIPS>(leds, NUM_LEDS_PER_STRIP);
+  const uint_fast8_t numStrips = 4;
+  const uint_fast8_t numLEDsPerStrip = numLEDs / numStrips;  // (328)
+  FastLED.addLeds<WS2811_PORTD,numStrips>(leds, numLEDsPerStrip);
   FastLED.setDither(1);
   FastLED.setMaxPowerInVoltsAndMilliamps(5, 3000);
   FastLED.setBrightness(currentBrightness);
@@ -153,8 +171,8 @@ void setup() {
   FastLED.show();
   Serial.println("cleared");
 
-  for (uint_fast16_t i=0;i<NUM_STREAKS;i++) {
-    streaks[i] = new Streak(COLUMNS, ROWS, greenHue, SATURATION, leds);
+  for (uint_fast16_t i=0;i<numStreaks;i++) {
+    streaks[i] = new Streak(columns, rows, greenHue, saturation, leds);
     streaks[i]->setRandomHue(true);
     streaks[i]->setIntervalMinMax(9, 23);
     streaks[i]->setLengthMinMax(13, 37);
@@ -163,21 +181,21 @@ void setup() {
 
   Serial.println("Streaks Setup");
 
-  sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 2477);
+  sparkle = new Sparkle(numLEDs, 0, 0, leds, 2477);
   Serial.println("Sparkles!");
 
-  spectrum1 = new Spectrum2(COLUMNS, ROWS, (ROWS / 4) - 1, noteCount,
-    pinkHue, SATURATION, true, leds);
-  // spectrum2 = new Spectrum2(COLUMNS, ROWS, (ROWS / 4), noteCount,
-  //   pinkHue, SATURATION, false, leds);
-  spectrum2 = new Spectrum2(COLUMNS, ROWS, (ROWS / 2) - 1, noteCount,
-    pinkHue, SATURATION, true, leds);
-  spectrum3 = new Spectrum2(COLUMNS, ROWS, ((ROWS / 4) * 3) - 1 , noteCount,
-    pinkHue, SATURATION, true, leds);
-  // spectrum4 = new Spectrum2(COLUMNS, ROWS, (ROWS / 4) * 3, noteCount,
-  //   pinkHue, SATURATION, false, leds);
-  spectrum4 = new Spectrum2(COLUMNS, ROWS, ROWS - 1, noteCount,
-    pinkHue, SATURATION, true, leds);
+  spectrum1 = new Spectrum2(columns, rows, (rows / 4) - 1, noteCount,
+    pinkHue, saturation, true, leds);
+  // spectrum2 = new Spectrum2(columns, rows, (rows / 4), noteCount,
+  //   pinkHue, saturation, false, leds);
+  spectrum2 = new Spectrum2(columns, rows, (rows / 2) - 1, noteCount,
+    pinkHue, saturation, true, leds);
+  spectrum3 = new Spectrum2(columns, rows, ((rows / 4) * 3) - 1 , noteCount,
+    pinkHue, saturation, true, leds);
+  // spectrum4 = new Spectrum2(columns, rows, (rows / 4) * 3, noteCount,
+  //   pinkHue, saturation, false, leds);
+  spectrum4 = new Spectrum2(columns, rows, rows - 1, noteCount,
+    pinkHue, saturation, true, leds);
 
   defaultAllHues();
 
@@ -203,13 +221,13 @@ void loop() {
 
 
   // BATTERY READ
-  if (currentTime > batteryTimestamp + BATTERY_READ_INTERVAL) {
+  if (currentTime > batteryTimestamp + batteryReadInterval) {
     float currentReading = analogRead(BATTERY_PIN);
 
     if (batteryReading == 2000) {
       batteryReading = (uint_fast16_t)currentReading;
     } else {
-      batteryReading = (uint_fast16_t)((float)batteryReading * BATTERY_APLPHA + (1 - BATTERY_APLPHA) * (float)currentReading);
+      batteryReading = (uint_fast16_t)((float)batteryReading * batteryAlpha + (1 - batteryAlpha) * (float)currentReading);
     }
 
     // Battery Log:
@@ -222,12 +240,12 @@ void loop() {
     Serial.print("\t");
     Serial.print(batteryReading);
 
-    float dividedVoltage = (float)batteryReading / ANALOG_RATIO;
+    float dividedVoltage = (float)batteryReading / analogRatio;
     Serial.print("\t");
     Serial.print(dividedVoltage);
 
-    float totalVoltage = dividedVoltage / VOLTAGE_DIVIDER_RATIO;
-    float batteryVoltage = totalVoltage / NUM_BATTERIES;
+    float totalVoltage = dividedVoltage / voltageDividerRatio;
+    float batteryVoltage = totalVoltage / numBatteries;
     Serial.print("\t");
     Serial.print(batteryVoltage);
 
@@ -276,7 +294,7 @@ void loop() {
     batteryMeterColor = redBatteryMeeterColor;
   }
 
-  displayGauge(GAUGE_COLUMN, 154, 10, batteryMeterColor, batteryPercentage);
+  displayGauge(1, 154, 10, batteryMeterColor, batteryPercentage);
 
 
   // MAIN DISPLAY
@@ -295,7 +313,7 @@ void loop() {
   // \ NOTE DETECTION
   ////////////////////////////////////////////////////////////////////////////////////////////////
 
-  for (uint_fast16_t i=0;i<NUM_STREAKS;i++) {
+  for (uint_fast16_t i=0;i<numStreaks;i++) {
     streaks[i]->display(currentTime);
   }
 
@@ -349,7 +367,7 @@ void decreaseDensity() {
 }
 
 void setAll(CRGB color) {
-  for (uint_fast16_t i=0; i<NUM_LEDS; i++) {
+  for (uint_fast16_t i=0; i<numLEDs; i++) {
     leds[i] = color;
   }
 }
@@ -359,7 +377,7 @@ void clear() {
 }
 
 void changeAllHues(uint8_t hue) {
-  for (uint_fast16_t i=0;i<NUM_STREAKS;i++) {
+  for (uint_fast16_t i=0;i<numStreaks;i++) {
     streaks[i]->setRandomHue(false);
     streaks[i]->setHue(hue);
   }
@@ -376,7 +394,7 @@ void changeAllHues(uint8_t hue) {
 }
 
 void defaultAllHues() {
-  for (uint_fast16_t i=0;i<NUM_STREAKS;i++) {
+  for (uint_fast16_t i=0;i<numStreaks;i++) {
     streaks[i]->setRandomHue(true);
   }
 
@@ -411,13 +429,13 @@ uint8_t calcHue(float r, float g, float b) {
 
 void stealColorAnimation(uint8_t hue) {
   float z = 0;
-  CRGB color = CHSV(hue, SATURATION, 255);
+  CRGB color = CHSV(hue, saturation, 255);
   setAll(off);
 
   FastLED.setBrightness(64);
 
-  for (uint16_t y=1; y<ROWS; y++) {
-    for (uint8_t x=0; x<COLUMNS; x++) {
+  for (uint16_t y=1; y<rows; y++) {
+    for (uint8_t x=0; x<columns; x++) {
       leds[xy2Pos(x, y)] = color;
     }
     if (y > z) {
@@ -432,11 +450,11 @@ void stealColorAnimation(uint8_t hue) {
 
 
 uint16_t xy2Pos(uint16_t x, uint16_t y) {
-  uint16_t pos = x * ROWS;
+  uint16_t pos = x * rows;
   if (x % 2 == 0) {
     pos = pos + y;
   } else {
-    pos = pos + ((ROWS - 1) - y);
+    pos = pos + ((rows - 1) - y);
   }
 
   return pos;
