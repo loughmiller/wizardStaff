@@ -275,6 +275,22 @@ void loop() {
         case colorClearMessage:
           defaultAllHues();
           break;
+        case brightnessUpMessage:
+          increaseBrightness();
+          Serial.println("Increase Brightness.");
+          break;
+        case brightnessDownMessage:
+          decreaseBrightness();
+          Serial.println("Decrease Brightness.");
+          break;
+        case densityUpMessage:
+          increaseDensity();
+          Serial.println("Increase Density.");
+          break;
+        case densityDownMessage:
+          decreaseDensity();
+          Serial.println("Decrease Density.");
+          break;
       }
 
       // Serial.println(loops/(millis() - startTime));
