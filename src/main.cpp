@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <FastLED.h>
 #include <Wire.h>
+#include <VirtualWire.h>
 #define ARM_MATH_CM4
 #include <arm_math.h>
 #include <algorithm>    // std::sort
@@ -91,6 +92,21 @@ float batteryPercentage = 100;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
+// RECEIVER
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+const uint_fast8_t receive_pin = 9;
+const uint_fast8_t maxMessageLength = 3;
+uint_fast8_t messageID = 255;
+
+const byte colorReadMessage = 0;
+const byte colorClearMessage = 1;
+const byte brightnessUpMessage = 2;
+const byte brightnessDownMessage = 3;
+const byte densityUpMessage = 4;
+const byte densityDownMessage = 5;
+
+////////////////////////////////////////////////////////////////////////////////////////////////
 // ACTIONS / CONTROLS
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -145,6 +161,11 @@ void setup() {
 
   Serial.begin(38400);
   Serial.println("setup started");
+
+  // Initialise the IO and ISR
+  vw_set_rx_pin(receive_pin);
+  vw_setup(2000);	 // Bits per sec
+  vw_rx_start();   // Start the receiver PLL running
 
   randomSeed(analogRead(14));
 
@@ -218,13 +239,47 @@ void loop() {
   if (currentTime > loggingTimestamp + 5000) {
     loggingTimestamp = currentTime;
 
-
     Serial.print(currentTime);
 
     Serial.print("\tFrame Rate: ");
-    Serial.println(loops / ((currentTime - setupTime) / 1000));
+    Serial.print(loops / ((currentTime - setupTime) / 1000));
+    Serial.println();
   }
 
+  // RECEIVER
+  uint8_t buflen = maxMessageLength;
+  byte buf[maxMessageLength];
+
+  if (vw_get_message(buf, &buflen)) {
+
+    if (buf[0] != messageID) {
+      messageID = buf[0];
+
+      // logging
+      Serial.print("Got: ");
+      for (uint_fast8_t i = 0; i < buflen; i++)
+      {
+        Serial.print(buf[i], HEX);
+        Serial.print(' ');
+      }
+      Serial.println();
+
+      byte messageType = buf[1];
+      byte messageData = buf[2];
+
+      switch(messageType) {
+        case colorReadMessage:
+          stealColorAnimation(messageData);
+          changeAllHues(messageData);
+          break;
+        case colorClearMessage:
+          defaultAllHues();
+          break;
+      }
+
+      // Serial.println(loops/(millis() - startTime));
+    }
+  }
 
   // BATTERY READ
   if (currentTime > batteryTimestamp + batteryReadInterval) {
