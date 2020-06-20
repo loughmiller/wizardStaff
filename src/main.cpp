@@ -28,8 +28,9 @@ const uint_fast8_t columns = 8;
 const uint_fast8_t numLEDs = rows * columns;
 
 // COLORS
-const uint_fast8_t brightness = 208;
 const uint_fast8_t saturation = 244;
+const uint_fast8_t brightness = 208;
+const uint_fast8_t lowBatteryBrightness = 64;
 
 const uint_fast8_t pinkHue = 240;
 const uint_fast8_t blueHue = 137;
@@ -74,15 +75,17 @@ void displayGauge(uint_fast16_t x, uint_fast16_t yTop, uint_fast16_t length, CHS
 const uint_fast8_t numBatteries = 4;
 
 const float analogRatio = 310.3;
-const float batteryAlpha = 0.2;
+const float batteryAlpha = 0.3;
 const float voltageDividerRatio = 0.096;
-const uint_fast32_t batteryReadInterval = 120000;
+const float batteryLoadAdjustment = 1.1;
+const uint_fast32_t maxBatteryReadInteral = 32000;
+uint_fast32_t batteryReadInterval = 5000;
 
-CHSV blueBatteryMeterColor(blueHue, saturation, 64);
-CHSV redBatteryMeeterColor(0, 255, 64);
+CHSV blueBatteryMeterColor(blueHue, saturation, 40);
+CHSV redBatteryMeeterColor(0, 255, 40);
 
 // STATE
-uint_fast16_t batteryReading = 2000;
+uint_fast16_t batteryReading = 435;  // start with the lowest 100% reading
 uint_fast32_t batteryTimestamp = 0;
 float batteryPercentage = 100;
 
@@ -222,19 +225,16 @@ void loop() {
 
   // BATTERY READ
   if (currentTime > batteryTimestamp + batteryReadInterval) {
+    batteryReadInterval = min(maxBatteryReadInteral, batteryReadInterval + 1000);
     float currentReading = analogRead(BATTERY_PIN);
 
-    if (batteryReading == 2000) {
-      batteryReading = (uint_fast16_t)currentReading;
-    } else {
-      batteryReading = (uint_fast16_t)((float)batteryReading * batteryAlpha + (1 - batteryAlpha) * (float)currentReading);
-    }
+    batteryReading = (uint_fast16_t)(((float)currentReading * batteryAlpha) + (1 - batteryAlpha) * (float)batteryReading);
 
     // Battery Log:
     // Timestamp  currentReading  batteryReading, divided voltage, batteryVoltage
 
     batteryTimestamp = currentTime;
-    Serial.print(batteryTimestamp);
+    Serial.print(currentTime);
     Serial.print("\t");
     Serial.print(currentReading);
     Serial.print("\t");
@@ -245,7 +245,7 @@ void loop() {
     Serial.print(dividedVoltage);
 
     float totalVoltage = dividedVoltage / voltageDividerRatio;
-    float batteryVoltage = totalVoltage / numBatteries;
+    float batteryVoltage = (totalVoltage / numBatteries) * batteryLoadAdjustment;
     Serial.print("\t");
     Serial.print(batteryVoltage);
 
@@ -264,21 +264,21 @@ void loop() {
     // 0	  3
 
     batteryPercentage = 0;
-    if (batteryVoltage > 3.2) { batteryPercentage = 0.1; }
-    if (batteryVoltage > 3.39) { batteryPercentage = 0.2; }
-    if (batteryVoltage > 3.48) { batteryPercentage = 0.3; }
-    if (batteryVoltage > 3.54) { batteryPercentage = 0.4; }
+    if (batteryVoltage > 3.1) { batteryPercentage = 0.1; }
+    if (batteryVoltage > 3.3) { batteryPercentage = 0.2; }
+    if (batteryVoltage > 3.4) { batteryPercentage = 0.3; }
+    if (batteryVoltage > 3.5) { batteryPercentage = 0.4; }
     if (batteryVoltage > 3.6) { batteryPercentage = 0.5; }
     if (batteryVoltage > 3.7) { batteryPercentage = 0.6; }
     if (batteryVoltage > 3.8) { batteryPercentage = 0.7; }
-    if (batteryVoltage > 3.87) { batteryPercentage = 0.8; }
-    if (batteryVoltage > 3.98) { batteryPercentage = 0.9; }
-    if (batteryVoltage > 4.03) { batteryPercentage = 1; }
+    if (batteryVoltage > 3.85) { batteryPercentage = 0.8; }
+    if (batteryVoltage > 3.95) { batteryPercentage = 0.9; }
+    if (batteryVoltage > 4.0) { batteryPercentage = 1; }
 
     Serial.print("\t");
     Serial.println(batteryPercentage);
 
-    if (batteryVoltage == 0) {
+    if (batteryVoltage < 2.8) {
       Serial.println("");
       Serial.println("Batteries are dead!");
       clear();
@@ -294,8 +294,15 @@ void loop() {
     batteryMeterColor = redBatteryMeeterColor;
   }
 
-  displayGauge(1, 154, 10, batteryMeterColor, batteryPercentage);
+  if (batteryPercentage == 0) {
+    FastLED.setBrightness(lowBatteryBrightness);      // lower brightness to extend battery life
+    batteryPercentage = 1;                            // display a full red gauge when we're near empty
+  }
 
+  displayGauge(1, 154, 10, batteryMeterColor, batteryPercentage);
+  displayGauge(3, 154, 10, batteryMeterColor, batteryPercentage);
+  displayGauge(5, 154, 10, batteryMeterColor, batteryPercentage);
+  displayGauge(7, 154, 10, batteryMeterColor, batteryPercentage);
 
   // MAIN DISPLAY
 
