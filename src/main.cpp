@@ -59,11 +59,11 @@ Spectrum2 * spectrum4;
 // FUNTION DEFINITIONS
 void clear();
 void setAll(CRGB color);
-uint8_t calcHue(float r, float g, float b);
+uint_fast8_t calcHue(float r, float g, float b);
 void defaultAllHues();
-void changeAllHues(uint8_t hue);
-void stealColorAnimation(uint8_t hue);
-uint16_t xy2Pos(uint16_t x, uint16_t y);
+void changeAllHues(uint_fast8_t hue);
+void stealColorAnimation(uint_fast8_t hue);
+uint_fast16_t xy2Pos(uint_fast16_t x, uint_fast16_t y);
 void displayGauge(uint_fast16_t x, uint_fast16_t yTop, uint_fast16_t length, CHSV color, float value);
 
 
@@ -206,19 +206,22 @@ void setup() {
   setupTime = millis();
 }
 
-uint32_t loggingTimestamp = 0;
+uint_fast32_t loggingTimestamp = 0;
 
 // LOOP
 void loop() {
   loops++;
   clear();  // this just sets the array, no reason it can't be at the top
-  unsigned long currentTime = millis();
+  uint_fast32_t currentTime = millis();
 
   // put things we want to log here
   if (currentTime > loggingTimestamp + 5000) {
     loggingTimestamp = currentTime;
 
-    Serial.print("Frame Rate: ");
+
+    Serial.print(currentTime);
+
+    Serial.print("\tFrame Rate: ");
     Serial.println(loops / ((currentTime - setupTime) / 1000));
   }
 
@@ -330,7 +333,7 @@ void loop() {
 // ACTIONS
 
 void stealColor() {
-  uint8_t hue = 0;  // Will need to figure this out later
+  uint_fast8_t hue = 0;  // Will need to figure this out later
   Serial.print("hue: ");
   Serial.println(hue);
   stealColorAnimation(hue);
@@ -380,7 +383,7 @@ void clear() {
   setAll(off);
 }
 
-void changeAllHues(uint8_t hue) {
+void changeAllHues(uint_fast8_t hue) {
   for (uint_fast16_t i=0;i<numStreaks;i++) {
     streaks[i]->setRandomHue(false);
     streaks[i]->setHue(hue);
@@ -408,7 +411,7 @@ void defaultAllHues() {
   spectrum4->setDrift(-5);
 }
 
-uint8_t calcHue(float r, float g, float b) {
+uint_fast8_t calcHue(float r, float g, float b) {
   float minC, maxC, delta, hue;
 
   minC = min(r, min(g, b));
@@ -428,18 +431,18 @@ uint8_t calcHue(float r, float g, float b) {
     hue += 360;
   }
 
-  return (uint8_t)((hue/360) * 255);
+  return (uint_fast8_t)((hue/360) * 255);
 }
 
-void stealColorAnimation(uint8_t hue) {
+void stealColorAnimation(uint_fast8_t hue) {
   float z = 0;
   CRGB color = CHSV(hue, saturation, 255);
   setAll(off);
 
   FastLED.setBrightness(64);
 
-  for (uint16_t y=1; y<rows; y++) {
-    for (uint8_t x=0; x<columns; x++) {
+  for (uint_fast16_t y=1; y<rows; y++) {
+    for (uint_fast8_t x=0; x<columns; x++) {
       leds[xy2Pos(x, y)] = color;
     }
     if (y > z) {
@@ -453,8 +456,8 @@ void stealColorAnimation(uint8_t hue) {
 }
 
 
-uint16_t xy2Pos(uint16_t x, uint16_t y) {
-  uint16_t pos = x * rows;
+uint_fast16_t xy2Pos(uint_fast16_t x, uint_fast16_t y) {
+  uint_fast16_t pos = x * rows;
   if (x % 2 == 0) {
     pos = pos + y;
   } else {
