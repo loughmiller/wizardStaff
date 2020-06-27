@@ -352,7 +352,9 @@ void loop() {
     Serial.print("\t");
     Serial.println(batteryPercentage);
 
-    if (batteryVoltage < 2.8) {
+    if (currentReading < 2) {
+      Serial.println("No input from battery, ignoring cutoff!");
+    } else if (batteryVoltage < 2.8) {
       Serial.println("");
       Serial.println("Batteries are dead!");
       clear();
