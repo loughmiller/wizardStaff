@@ -26,7 +26,7 @@ using namespace std;
 // GEOMETRY CONSTANTS
 const uint_fast8_t rows = 164;
 const uint_fast8_t columns = 8;
-const uint_fast8_t numLEDs = rows * columns;
+const uint_fast16_t numLEDs = rows * columns;
 
 // COLORS
 const uint_fast8_t saturation = 244;
