@@ -325,20 +325,9 @@ void loop() {
     // Timestamp  currentReading  batteryReading, divided voltage, batteryVoltage
 
     batteryTimestamp = currentTime;
-    Serial.print(currentTime);
-    Serial.print("\t");
-    Serial.print(currentReading);
-    Serial.print("\t");
-    Serial.print(batteryReading);
-
     float dividedVoltage = (float)batteryReading / analogRatio;
-    Serial.print("\t");
-    Serial.print(dividedVoltage);
-
     float totalVoltage = dividedVoltage / voltageDividerRatio;
     float batteryVoltage = (totalVoltage / numBatteries) * batteryLoadAdjustment;
-    Serial.print("\t");
-    Serial.print(batteryVoltage);
 
     // %   Voltage
     // 100	4.1
@@ -366,16 +355,25 @@ void loop() {
     if (batteryVoltage > 3.95) { batteryPercentage = 0.9; }
     if (batteryVoltage > 4.0) { batteryPercentage = 1; }
 
-    Serial.print("\t");
-    Serial.println(batteryPercentage);
+    // Serial.print(currentTime);
+    // Serial.print("\t");
+    // Serial.print(currentReading);
+    // Serial.print("\t");
+    // Serial.print(batteryReading);
+    // Serial.print("\t");
+    // Serial.print(dividedVoltage);
+    // Serial.print("\t");
+    // Serial.print(batteryVoltage);
+    // Serial.print("\t");
+    // Serial.println(batteryPercentage);
 
-    if (batteryVoltage < 2.8) {
-      Serial.println("");
-      Serial.println("Batteries are dead!");
-      clear();
-      FastLED.show();
-      exit(0);
-    }
+    // if (batteryVoltage < 2.8) {
+    //   Serial.println("");
+    //   Serial.println("Batteries are dead!");
+    //   clear();
+    //   FastLED.show();
+    //   exit(0);
+    // }
   }
 
   // BATTERY GAUGE
