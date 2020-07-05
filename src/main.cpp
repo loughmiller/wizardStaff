@@ -24,8 +24,8 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 // GEOMETRY CONSTANTS
-const uint_fast8_t rows = 164;
-const uint_fast8_t columns = 8;
+const uint_fast8_t rows = 200;
+const uint_fast8_t columns = 3;
 const uint_fast16_t numLEDs = rows * columns;
 
 // COLORS
@@ -178,9 +178,7 @@ void setup() {
   // // WS2811_PORTC: 15,22,23,9,10,13,11,12,28,27,29,30 (these last 4 are pads on the bottom of the teensy)
   // // WS2811_PORTDC: 2,14,7,8,6,20,21,5,15,22,23,9,10,13,11,12 - 16 way parallel
 
-  const uint_fast8_t numStrips = 4;
-  const uint_fast8_t numLEDsPerStrip = numLEDs / numStrips;  // (328)
-  FastLED.addLeds<WS2811_PORTD,numStrips>(leds, numLEDsPerStrip);
+  FastLED.addLeds<WS2811_PORTD,columns>(leds, rows);
   FastLED.setDither(1);
   FastLED.setMaxPowerInVoltsAndMilliamps(5, 3000);
   FastLED.setBrightness(currentBrightness);
@@ -369,10 +367,10 @@ void loop() {
   }
 
   if (batteryPercentage == 0) {
-    displayGauge(1, 154, 10, batteryMeterColor, 1);   // display a full red gauge when we're near empty
+    displayGauge(1, 190, 10, batteryMeterColor, 1);   // display a full red gauge when we're near empty
     FastLED.setBrightness(lowBatteryBrightness);      // lower brightness to extend battery life
   } else {
-    displayGauge(1, 154, 10, batteryMeterColor, batteryPercentage);
+    displayGauge(1, 190, 10, batteryMeterColor, batteryPercentage);
   }
 
   // MAIN DISPLAY
@@ -529,11 +527,13 @@ void stealColorAnimation(uint_fast8_t hue) {
 
 uint_fast16_t xy2Pos(uint_fast16_t x, uint_fast16_t y) {
   uint_fast16_t pos = x * rows;
-  if (x % 2 == 0) {
-    pos = pos + y;
-  } else {
-    pos = pos + ((rows - 1) - y);
-  }
+  pos = pos + y;
+
+  // if (x % 2 == 0) {
+  //   pos = pos + y;
+  // } else {
+  //   pos = pos + ((rows - 1) - y);
+  // }
 
   return pos;
 }
