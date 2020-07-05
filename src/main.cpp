@@ -227,6 +227,11 @@ void setup() {
 
 uint_fast32_t loggingTimestamp = 0;
 
+uint_fast32_t rfTime = 0;
+uint_fast32_t fftTime = 0;
+uint_fast32_t batteryTime = 0;
+uint_fast32_t fastLEDTime = 0;
+
 // LOOP
 void loop() {
   loops++;
@@ -242,7 +247,17 @@ void loop() {
     Serial.print("\tFrame Rate: ");
     Serial.print(loops / ((currentTime - setupTime) / 1000));
     Serial.println();
+    Serial.print(rfTime/loops);
+    Serial.print("\t");
+    Serial.print(fftTime/loops);
+    Serial.print("\t");
+    Serial.print(batteryTime/loops);
+    Serial.print("\t");
+    Serial.print(fastLEDTime/loops);
+    Serial.println("");
   }
+
+  uint_fast32_t loopZero = millis();
 
   // RECEIVER
   uint8_t buflen = maxMessageLength;
@@ -294,6 +309,10 @@ void loop() {
       // Serial.println(loops/(millis() - startTime));
     }
   }
+
+  uint_fast32_t loopOne = millis();
+
+  rfTime += loopOne - loopZero;
 
   // BATTERY READ
   if (currentTime > batteryTimestamp + batteryReadInterval) {
@@ -373,6 +392,9 @@ void loop() {
     displayGauge(1, 190, 10, batteryMeterColor, batteryPercentage);
   }
 
+  uint_least32_t loopTwo = millis();
+  batteryTime += loopTwo - loopOne;
+
   // MAIN DISPLAY
 
   ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -385,6 +407,9 @@ void loop() {
   spectrum3->display(noteMagnatudes);
   spectrum4->display(noteMagnatudes);
 
+  uint_least32_t loopThree = millis();
+  fftTime += loopThree - loopTwo;
+
   ////////////////////////////////////////////////////////////////////////////////////////////////
   // \ NOTE DETECTION
   ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -396,6 +421,8 @@ void loop() {
   sparkle->display();
 
   FastLED.show();
+
+  fastLEDTime += millis() - loopThree;
 }
 // /LOOP
 
