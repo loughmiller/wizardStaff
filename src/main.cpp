@@ -45,7 +45,7 @@ uint_fast8_t currentBrightness = brightness;
 CRGB leds[numLEDs];
 
 // streaks array
-const uint_fast8_t numStreaks = 3;
+const uint_fast8_t numStreaks = 1;
 Streak * streaks[numStreaks];
 
 // random sparkle object
