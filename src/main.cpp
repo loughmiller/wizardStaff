@@ -186,7 +186,7 @@ void setup() {
   // INDICATE BOOT SEQUENCE
   setAll(0x000200);
   FastLED.show();
-  FastLED.delay(1000);
+  delay(1000);
 
   // DISPLAY STUFF
   clear();
