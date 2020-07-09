@@ -239,7 +239,8 @@ void loop() {
   uint_fast32_t currentTime = millis();
 
   // put things we want to log here
-  if (currentTime > loggingTimestamp + 5000) {
+  // if (currentTime > loggingTimestamp + 5000) {
+  if (false) {
     loggingTimestamp = currentTime;
 
     Serial.print(currentTime);
@@ -247,14 +248,14 @@ void loop() {
     Serial.print("\tFrame Rate: ");
     Serial.print(loops / ((currentTime - setupTime) / 1000));
     Serial.println();
-    Serial.print(rfTime/loops);
-    Serial.print("\t");
-    Serial.print(fftTime/loops);
-    Serial.print("\t");
-    Serial.print(batteryTime/loops);
-    Serial.print("\t");
-    Serial.print(fastLEDTime/loops);
-    Serial.println("");
+    // Serial.print(rfTime/loops);
+    // Serial.print("\t");
+    // Serial.print(fftTime/loops);
+    // Serial.print("\t");
+    // Serial.print(batteryTime/loops);
+    // Serial.print("\t");
+    // Serial.print(fastLEDTime/loops);
+    // Serial.println("");
   }
 
   uint_fast32_t loopZero = millis();
