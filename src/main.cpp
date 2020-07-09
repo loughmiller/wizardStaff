@@ -138,8 +138,8 @@ const float middleA{440.0};                     // frequency of middle A.  Neede
 const uint_fast16_t sampleIntervalMs{1000000 / (fftSize * fftBinSize)};  // how often to get a sample, needed for IntervalTimer
 
 // FREQUENCY TO NOTE CONSTANTS - CALCULATE HERE: https://docs.google.com/spreadsheets/d/1CPcxGFB7Lm6xJ8CePfCF0qXQEZuhQ-nI1TC4PAiAd80/edit?usp=sharing
-const uint_fast16_t noteCount{40};              // how many notes are we trying to detect
-const uint_fast16_t notesBelowMiddleA{30};
+const uint_fast16_t noteCount{50};              // how many notes are we trying to detect
+const uint_fast16_t notesBelowMiddleA{32};
 
 // NOTE DETECTION GLOBALS
 float samples[sampleCount*2];
@@ -596,7 +596,14 @@ void noteDetectionLoop() {
     noteMagnatudes[i] = 0;
   }
 
-  for (uint_fast16_t i=1; i<fftSize/2; i++) {  // ignore top half of the FFT results
+  // We're suppose to ignore the top half of the FFT results due to aliasing issues, however
+  // we're not trying to sound good, we're trying to look good, and in this context it seems ok
+  // There are bigger harmonic(?) issues due to our low sample rate and/or small FFT size.  This
+  // looks cool, so we're rolling with it.  This should allow us ~60 notes, but we only need 50
+  // due to current staff geometery.
+  for (uint_fast16_t i=1; i<fftSize; i++) {
+    // Serial.print(magnitudes[i]);
+    // Serial.print("\t");
     float frequency = i * (fftBinSize);
     uint_fast16_t note = roundf(12 * (log(frequency / middleA) / log(2))) + notesBelowMiddleA;
 
@@ -604,9 +611,16 @@ void noteDetectionLoop() {
       continue;
     }
 
-    note = note % noteCount;
+    if (note >= noteCount) {
+      break;
+    }
+
+    // note = note % noteCount;  // I'd like a side by side of this vs the above break
+
+    // Multiple bins can point to the same note, use the largest magnitude
     noteMagnatudes[note] = max(noteMagnatudes[note], magnitudes[i]);
   }
+  // Serial.println("");
 }
 
 void samplingCallback() {
