@@ -25,7 +25,7 @@ using namespace std;
 
 // GEOMETRY CONSTANTS
 const uint_fast8_t rows = 200;
-const uint_fast8_t columns = 3;
+const uint_fast8_t columns = 4;
 const uint_fast16_t numLEDs = rows * columns;
 
 // COLORS
@@ -139,7 +139,7 @@ const uint_fast16_t sampleIntervalMs{1000000 / (fftSize * fftBinSize)};  // how 
 
 // FREQUENCY TO NOTE CONSTANTS - CALCULATE HERE: https://docs.google.com/spreadsheets/d/1CPcxGFB7Lm6xJ8CePfCF0qXQEZuhQ-nI1TC4PAiAd80/edit?usp=sharing
 const uint_fast16_t noteCount{50};              // how many notes are we trying to detect
-const uint_fast16_t notesBelowMiddleA{32};
+const uint_fast16_t notesBelowMiddleA{33};
 
 // NOTE DETECTION GLOBALS
 float samples[sampleCount*2];
@@ -206,18 +206,24 @@ void setup() {
   sparkle = new Sparkle(numLEDs, 0, 0, leds, 2477);
   Serial.println("Sparkles!");
 
-  spectrum1 = new Spectrum2(columns, rows, (rows / 4) - 1, noteCount,
-    pinkHue, saturation, true, leds);
-  spectrum2 = new Spectrum2(columns, rows, (rows / 4), noteCount,
-    pinkHue, saturation, false, leds);
-  // spectrum2 = new Spectrum2(columns, rows, (rows / 2) - 1, noteCount,
+  // spectrum1 = new Spectrum2(columns, rows, (rows / 4) - 1, noteCount,
   //   pinkHue, saturation, true, leds);
-  spectrum3 = new Spectrum2(columns, rows, ((rows / 4) * 3) - 1 , noteCount,
-    pinkHue, saturation, true, leds);
-  spectrum4 = new Spectrum2(columns, rows, (rows / 4) * 3, noteCount,
-    pinkHue, saturation, false, leds);
-  // spectrum4 = new Spectrum2(columns, rows, rows - 1, noteCount,
+  // spectrum2 = new Spectrum2(columns, rows, (rows / 4), noteCount,
+  //   pinkHue, saturation, false, leds);
+  // spectrum3 = new Spectrum2(columns, rows, ((rows / 4) * 3) - 1 , noteCount,
   //   pinkHue, saturation, true, leds);
+  // spectrum4 = new Spectrum2(columns, rows, (rows / 4) * 3, noteCount,
+  //   pinkHue, saturation, false, leds);
+
+  spectrum1 = new Spectrum2(columns, rows, 0, noteCount,
+    pinkHue, saturation, false, leds);
+  spectrum2 = new Spectrum2(columns, rows, (rows / 2) - 1, noteCount,
+    pinkHue, saturation, true, leds);
+  spectrum3 = new Spectrum2(columns, rows, (rows / 2), noteCount,
+    pinkHue, saturation, false, leds);
+  spectrum4 = new Spectrum2(columns, rows, rows - 1, noteCount,
+    pinkHue, saturation, true, leds);
+
 
   defaultAllHues();
 
@@ -239,8 +245,8 @@ void loop() {
   uint_fast32_t currentTime = millis();
 
   // put things we want to log here
-  // if (currentTime > loggingTimestamp + 5000) {
-  if (false) {
+  if (currentTime > loggingTimestamp + 5000) {
+  // if (false) {
     loggingTimestamp = currentTime;
 
     Serial.print(currentTime);
@@ -258,7 +264,7 @@ void loop() {
     // Serial.println("");
   }
 
-  uint_fast32_t loopZero = millis();
+  // uint_fast32_t loopZero = millis();
 
   // RECEIVER
   uint8_t buflen = maxMessageLength;
@@ -311,9 +317,8 @@ void loop() {
     }
   }
 
-  uint_fast32_t loopOne = millis();
-
-  rfTime += loopOne - loopZero;
+  // uint_fast32_t loopOne = millis();
+  // rfTime += loopOne - loopZero;
 
   // BATTERY READ
   if (currentTime > batteryTimestamp + batteryReadInterval) {
@@ -391,8 +396,8 @@ void loop() {
     displayGauge(1, 190, 10, batteryMeterColor, batteryPercentage);
   }
 
-  uint_least32_t loopTwo = millis();
-  batteryTime += loopTwo - loopOne;
+  // uint_least32_t loopTwo = millis();
+  // batteryTime += loopTwo - loopOne;
 
   // MAIN DISPLAY
 
@@ -406,8 +411,8 @@ void loop() {
   spectrum3->display(noteMagnatudes);
   spectrum4->display(noteMagnatudes);
 
-  uint_least32_t loopThree = millis();
-  fftTime += loopThree - loopTwo;
+  // uint_least32_t loopThree = millis();
+  // fftTime += loopThree - loopTwo;
 
   ////////////////////////////////////////////////////////////////////////////////////////////////
   // \ NOTE DETECTION
@@ -421,7 +426,7 @@ void loop() {
 
   FastLED.show();
 
-  fastLEDTime += millis() - loopThree;
+  // fastLEDTime += millis() - loopThree;
 }
 // /LOOP
 
@@ -501,9 +506,9 @@ void defaultAllHues() {
   }
 
   spectrum1->setDrift(1);
-  spectrum2->setDrift(1);
+  spectrum2->setDrift(-1);
   spectrum3->setDrift(-1);
-  spectrum4->setDrift(-1);
+  spectrum4->setDrift(1);
 }
 
 uint_fast8_t calcHue(float r, float g, float b) {
@@ -536,14 +541,16 @@ void stealColorAnimation(uint_fast8_t hue) {
 
   FastLED.setBrightness(64);
 
-  for (uint_fast16_t y=1; y<rows; y++) {
+  uint_fast8_t delayMS = 30;
+
+  for (uint_fast16_t y=1; y<rows/2; y++) {
     for (uint_fast8_t x=0; x<columns; x++) {
-      leds[xy2Pos(x, y)] = color;
+      leds[xy2Pos(x, (rows/2) + y)] = color;
+      leds[xy2Pos(x, (rows/2) - y)] = color;
     }
-    if (y > z) {
-      FastLED.show();
-      z = y * 1.07;
-    }
+    FastLED.show();
+    delay(delayMS);
+    delayMS = max(delayMS * 0.99, 1);
   }
 
   // Serial.println("StealColorAnimation Complete.");
