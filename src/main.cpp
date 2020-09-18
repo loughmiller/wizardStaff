@@ -5,7 +5,6 @@
 #define ARM_MATH_CM4
 #include <arm_math.h>
 #include <algorithm>    // std::sort
-
 #include <Visualization.h>
 #include <Streak.h>
 #include <Sparkle.h>
@@ -13,10 +12,15 @@
 
 using namespace std;
 
-// DEFINE PINS HERE
-#define AUDIO_INPUT_PIN A8            // Input pin for audio data.
-#define BATTERY_PIN A5                // Input pin for reading battery level
-// WS2811_PORTD: 2,14,7,8,6,20,21,5   // FastLED parallel output pins
+// // DEFINE PINS HERE
+#define MIC_AR 39
+#define AUDIO_INPUT_PIN A19  // (38) Input pin for audio data.
+#define MIC_GAIN 37
+#define MIC_POWER 36
+#define MIC_GROUND 35
+
+#define BATTERY_PIN A5       // Input pin for reading battery level
+// WS2811_PORTDC: 2,14,7,8,6,20,21,5,15,22 - 10 way parallel
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -25,12 +29,12 @@ using namespace std;
 
 // GEOMETRY CONSTANTS
 const uint_fast8_t rows = 200;
-const uint_fast8_t columns = 4;
+const uint_fast8_t columns = 10;
 const uint_fast16_t numLEDs = rows * columns;
 
 // COLORS
 const uint_fast8_t saturation = 244;
-const uint_fast8_t brightness = 208;
+const uint_fast8_t brightness = 255;
 const uint_fast8_t lowBatteryBrightness = 64;
 
 const uint_fast8_t pinkHue = 240;
@@ -45,7 +49,7 @@ uint_fast8_t currentBrightness = brightness;
 CRGB leds[numLEDs];
 
 // streaks array
-const uint_fast8_t numStreaks = 1;
+const uint_fast8_t numStreaks = 0;
 Streak * streaks[numStreaks];
 
 // random sparkle object
@@ -95,9 +99,13 @@ float batteryPercentage = 100;
 // RECEIVER
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-const uint_fast8_t receive_pin = 9;
+const uint_fast8_t receive_pin = 31;
 const uint_fast8_t maxMessageLength = 3;
 uint_fast8_t messageID = 255;
+
+// RECEIVER
+uint8_t buflen = maxMessageLength;
+byte buf[maxMessageLength];
 
 const byte colorReadMessage = 0;
 const byte colorClearMessage = 1;
@@ -157,36 +165,43 @@ void samplingCallback();
 
 
 void setup() {
-  delay(2000);
+  // Power peripherals
+  pinMode(MIC_AR, OUTPUT);
+  // pinMode(MIC_GAIN, OUTPUT);
+  pinMode(MIC_POWER, OUTPUT);
+  pinMode(MIC_GROUND, OUTPUT);
 
-  Serial.begin(38400);
-  Serial.println("setup started");
+  digitalWrite(MIC_GROUND, LOW);
+  digitalWrite(MIC_POWER, HIGH);
+
+
+  Serial.begin(9600);	// Debugging only
+  Serial.println("setup");
 
   // Initialise the IO and ISR
   vw_set_rx_pin(receive_pin);
   vw_setup(2000);	 // Bits per sec
-  vw_rx_start();   // Start the receiver PLL running
+  vw_rx_start();       // Start the receiver PLL running
 
-  randomSeed(analogRead(14));
+  randomSeed(analogRead(A4));
 
   noteDetectionSetup();
 
   // SETUP LEDS
   // Parallel  Pin layouts on the teensy 3/3.1:
-  // Connector:    1, 2,3,4,5, 6, 7,8
-  // WS2811_PORTD: 2,14,7,8,6,20,21,5  << THIS IS US
+  // // WS2811_PORTD: 2,14,7,8,6,20,21,5
   // // WS2811_PORTC: 15,22,23,9,10,13,11,12,28,27,29,30 (these last 4 are pads on the bottom of the teensy)
-  // // WS2811_PORTDC: 2,14,7,8,6,20,21,5,15,22,23,9,10,13,11,12 - 16 way parallel
+  // WS2811_PORTDC: 2,14,7,8,6,20,21,5,15,22,23,9,10,13,11,12 - 16 way parallel
 
-  FastLED.addLeds<WS2811_PORTD,columns>(leds, rows);
+  FastLED.addLeds<WS2811_PORTDC,columns>(leds, rows);
   FastLED.setDither(1);
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, 3000);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 4000);
   FastLED.setBrightness(currentBrightness);
 
   // INDICATE BOOT SEQUENCE
-  setAll(0x000200);
+  setAll(0x001000);
   FastLED.show();
-  delay(1000);
+  delay(3000);
 
   // DISPLAY STUFF
   clear();
@@ -203,7 +218,7 @@ void setup() {
 
   Serial.println("Streaks Setup");
 
-  sparkle = new Sparkle(numLEDs, 0, 0, leds, 2477);
+  sparkle = new Sparkle(numLEDs, 0, 0, leds, 10000);
   Serial.println("Sparkles!");
 
   // spectrum1 = new Spectrum2(columns, rows, (rows / 4) - 1, noteCount,
@@ -233,13 +248,34 @@ void setup() {
 
 uint_fast32_t loggingTimestamp = 0;
 
-uint_fast32_t rfTime = 0;
-uint_fast32_t fftTime = 0;
-uint_fast32_t batteryTime = 0;
-uint_fast32_t fastLEDTime = 0;
+// uint_fast32_t rfTime = 0;
+// uint_fast32_t fftTime = 0;
+// uint_fast32_t batteryTime = 0;
+// uint_fast32_t fastLEDTime = 0;
+
+// void loop()
+// {
+//     uint8_t buf[maxMessageLength];
+//     uint8_t buflen = maxMessageLength;
+
+//     if (vw_get_message(buf, &buflen)) // Non-blocking
+//     {
+//         int i;
+
+//         Serial.print("Got: ");
+
+//         for (i = 0; i < buflen; i++)
+//         {
+//             Serial.print(buf[i], HEX);
+//             Serial.print(' ');
+//         }
+//         Serial.println();
+//     }
+// }
 
 // LOOP
 void loop() {
+
   loops++;
   clear();  // this just sets the array, no reason it can't be at the top
   uint_fast32_t currentTime = millis();
@@ -253,72 +289,21 @@ void loop() {
 
     Serial.print("\tFrame Rate: ");
     Serial.print(loops / ((currentTime - setupTime) / 1000));
-    Serial.println();
-    // Serial.print(rfTime/loops);
-    // Serial.print("\t");
-    // Serial.print(fftTime/loops);
-    // Serial.print("\t");
-    // Serial.print(batteryTime/loops);
-    // Serial.print("\t");
-    // Serial.print(fastLEDTime/loops);
-    // Serial.println("");
+//     // Serial.println();
+//     // Serial.print(rfTime/loops);
+//     // Serial.print("\t");
+//     // Serial.print(fftTime/loops);
+//     // Serial.print("\t");
+//     // Serial.print(batteryTime/loops);
+//     // Serial.print("\t");
+//     // Serial.print(fastLEDTime/loops);
+    Serial.println("");
   }
 
-  // uint_fast32_t loopZero = millis();
+//   // uint_fast32_t loopZero = millis();
 
-  // RECEIVER
-  uint8_t buflen = maxMessageLength;
-  byte buf[maxMessageLength];
-
-  if (vw_get_message(buf, &buflen)) {
-
-    if (buf[0] != messageID) {
-      messageID = buf[0];
-
-      // logging
-      Serial.print("Got: ");
-      for (uint_fast8_t i = 0; i < buflen; i++)
-      {
-        Serial.print(buf[i], HEX);
-        Serial.print(' ');
-      }
-      Serial.println();
-
-      byte messageType = buf[1];
-      byte messageData = buf[2];
-
-      switch(messageType) {
-        case colorReadMessage:
-          stealColorAnimation(messageData);
-          changeAllHues(messageData);
-          break;
-        case colorClearMessage:
-          defaultAllHues();
-          break;
-        case brightnessUpMessage:
-          increaseBrightness();
-          Serial.println("Increase Brightness.");
-          break;
-        case brightnessDownMessage:
-          decreaseBrightness();
-          Serial.println("Decrease Brightness.");
-          break;
-        case densityUpMessage:
-          increaseDensity();
-          Serial.println("Increase Density.");
-          break;
-        case densityDownMessage:
-          decreaseDensity();
-          Serial.println("Decrease Density.");
-          break;
-      }
-
-      // Serial.println(loops/(millis() - startTime));
-    }
-  }
-
-  // uint_fast32_t loopOne = millis();
-  // rfTime += loopOne - loopZero;
+//   // uint_fast32_t loopOne = millis();
+//   // rfTime += loopOne - loopZero;
 
   // BATTERY READ
   if (currentTime > batteryTimestamp + batteryReadInterval) {
@@ -382,24 +367,24 @@ void loop() {
     // }
   }
 
-  // BATTERY GAUGE
-  CHSV batteryMeterColor = blueBatteryMeterColor;
+//   // BATTERY GAUGE
+//   CHSV batteryMeterColor = blueBatteryMeterColor;
 
-  if (batteryPercentage < 0.2) {
-    batteryMeterColor = redBatteryMeeterColor;
-  }
+//   if (batteryPercentage < 0.2) {
+//     batteryMeterColor = redBatteryMeeterColor;
+//   }
 
-  if (batteryPercentage == 0) {
-    displayGauge(1, 190, 10, batteryMeterColor, 1);   // display a full red gauge when we're near empty
-    FastLED.setBrightness(lowBatteryBrightness);      // lower brightness to extend battery life
-  } else {
-    displayGauge(1, 190, 10, batteryMeterColor, batteryPercentage);
-  }
+//   if (batteryPercentage == 0) {
+//     displayGauge(1, 190, 10, batteryMeterColor, 1);   // display a full red gauge when we're near empty
+//     FastLED.setBrightness(lowBatteryBrightness);      // lower brightness to extend battery life
+//   } else {
+//     displayGauge(1, 190, 10, batteryMeterColor, batteryPercentage);
+//   }
 
-  // uint_least32_t loopTwo = millis();
-  // batteryTime += loopTwo - loopOne;
+//   // uint_least32_t loopTwo = millis();
+//   // batteryTime += loopTwo - loopOne;
 
-  // MAIN DISPLAY
+//   // MAIN DISPLAY
 
   ////////////////////////////////////////////////////////////////////////////////////////////////
   // NOTE DETECTION
@@ -418,16 +403,68 @@ void loop() {
   // \ NOTE DETECTION
   ////////////////////////////////////////////////////////////////////////////////////////////////
 
-  for (uint_fast16_t i=0;i<numStreaks;i++) {
-    streaks[i]->display(currentTime);
-  }
+//   for (uint_fast16_t i=0;i<numStreaks;i++) {
+//     streaks[i]->display(currentTime);
+//   }
 
   sparkle->display();
 
+  if (vw_get_message(buf, &buflen)) {
+
+    // Serial.println(buf[0]);
+
+    if (buf[0] != messageID) {
+      messageID = buf[0];
+
+      // logging
+      Serial.print("Got: ");
+      for (uint_fast8_t i = 0; i < buflen; i++)
+      {
+        Serial.print(buf[i], HEX);
+        Serial.print(' ');
+      }
+      // Serial.println();
+
+      byte messageType = buf[1];
+      byte messageData = buf[2];
+
+      switch(messageType) {
+        case colorReadMessage:
+          stealColorAnimation(messageData);
+          changeAllHues(messageData);
+          Serial.println("Steal Color.");
+          break;
+        case colorClearMessage:
+          defaultAllHues();
+          Serial.println("Clear Color.");
+          break;
+        case brightnessUpMessage:
+          increaseBrightness();
+          Serial.println("Increase Brightness.");
+          break;
+        case brightnessDownMessage:
+          decreaseBrightness();
+          Serial.println("Decrease Brightness.");
+          break;
+        case densityUpMessage:
+          increaseDensity();
+          Serial.println("Increase Density.");
+          break;
+        case densityDownMessage:
+          decreaseDensity();
+          Serial.println("Decrease Density.");
+          break;
+      }
+
+      // Serial.println(loops/(millis() - startTime));
+    }
+  }
+
   FastLED.show();
 
-  // fastLEDTime += millis() - loopThree;
+//   // fastLEDTime += millis() - loopThree;
 }
+
 // /LOOP
 
 // ACTIONS
@@ -506,8 +543,8 @@ void defaultAllHues() {
   }
 
   spectrum1->setDrift(1);
-  spectrum2->setDrift(-1);
-  spectrum3->setDrift(-1);
+  spectrum2->setDrift(1);
+  spectrum3->setDrift(1);
   spectrum4->setDrift(1);
 }
 
@@ -585,6 +622,8 @@ void displayGauge(uint_fast16_t x, uint_fast16_t yTop, uint_fast16_t length, CHS
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 void noteDetectionSetup() {
+  digitalWrite(MIC_AR, LOW);
+  // digitalWrite(MIC_GAIN, HIGH);
   pinMode(AUDIO_INPUT_PIN, INPUT);
   analogReadResolution(10);
   analogReadAveraging(16);
