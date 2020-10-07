@@ -12,16 +12,11 @@
 
 using namespace std;
 
-// // DEFINE PINS HERE
-#define MIC_AR 39
+// DEFINE PINS HERE
 #define AUDIO_INPUT_PIN A19  // (38) Input pin for audio data.
-#define MIC_GAIN 37
-#define MIC_POWER 36
-#define MIC_GROUND 35
 
 #define BATTERY_PIN A5       // Input pin for reading battery level
 // WS2811_PORTDC: 2,14,7,8,6,20,21,5,15,22 - 10 way parallel
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // LED AND VISUALIZATION
@@ -155,16 +150,6 @@ void samplingCallback();
 
 
 void setup() {
-  // Power peripherals
-  pinMode(MIC_AR, OUTPUT);
-  // pinMode(MIC_GAIN, OUTPUT);
-  pinMode(MIC_POWER, OUTPUT);
-  pinMode(MIC_GROUND, OUTPUT);
-
-  digitalWrite(MIC_GROUND, LOW);
-  digitalWrite(MIC_POWER, HIGH);
-
-
   Serial.begin(9600);	// Debugging only
   Serial.println("setup");
 
