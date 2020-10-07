@@ -71,7 +71,6 @@ void stealColorAnimation(uint_fast8_t hue);
 uint_fast16_t xy2Pos(uint_fast16_t x, uint_fast16_t y);
 void displayGauge(uint_fast16_t x, uint_fast16_t yTop, uint_fast16_t length, CHSV color, float value);
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // BATTERY
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -98,15 +97,6 @@ float batteryPercentage = 100;
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // RECEIVER
 ////////////////////////////////////////////////////////////////////////////////////////////////
-
-const uint_fast8_t receive_pin = 31;
-const uint_fast8_t maxMessageLength = 3;
-uint_fast8_t messageID = 255;
-
-// RECEIVER
-uint8_t buflen = maxMessageLength;
-byte buf[maxMessageLength];
-
 const byte colorReadMessage = 0;
 const byte colorClearMessage = 1;
 const byte brightnessUpMessage = 2;
@@ -178,11 +168,6 @@ void setup() {
   Serial.begin(9600);	// Debugging only
   Serial.println("setup");
 
-  // Initialise the IO and ISR
-  vw_set_rx_pin(receive_pin);
-  vw_setup(2000);	 // Bits per sec
-  vw_rx_start();       // Start the receiver PLL running
-
   randomSeed(analogRead(A4));
 
   noteDetectionSetup();
@@ -247,31 +232,6 @@ void setup() {
 }
 
 uint_fast32_t loggingTimestamp = 0;
-
-// uint_fast32_t rfTime = 0;
-// uint_fast32_t fftTime = 0;
-// uint_fast32_t batteryTime = 0;
-// uint_fast32_t fastLEDTime = 0;
-
-// void loop()
-// {
-//     uint8_t buf[maxMessageLength];
-//     uint8_t buflen = maxMessageLength;
-
-//     if (vw_get_message(buf, &buflen)) // Non-blocking
-//     {
-//         int i;
-
-//         Serial.print("Got: ");
-
-//         for (i = 0; i < buflen; i++)
-//         {
-//             Serial.print(buf[i], HEX);
-//             Serial.print(' ');
-//         }
-//         Serial.println();
-//     }
-// }
 
 // LOOP
 void loop() {
@@ -409,56 +369,49 @@ void loop() {
 
   sparkle->display();
 
-  if (vw_get_message(buf, &buflen)) {
+  //     // logging
+  //     Serial.print("Got: ");
+  //     for (uint_fast8_t i = 0; i < buflen; i++)
+  //     {
+  //       Serial.print(buf[i], HEX);
+  //       Serial.print(' ');
+  //     }
+  //     // Serial.println();
 
-    // Serial.println(buf[0]);
+  //     byte messageType = buf[1];
+  //     byte messageData = buf[2];
 
-    if (buf[0] != messageID) {
-      messageID = buf[0];
+  //     switch(messageType) {
+  //       case colorReadMessage:
+  //         stealColorAnimation(messageData);
+  //         changeAllHues(messageData);
+  //         Serial.println("Steal Color.");
+  //         break;
+  //       case colorClearMessage:
+  //         defaultAllHues();
+  //         Serial.println("Clear Color.");
+  //         break;
+  //       case brightnessUpMessage:
+  //         increaseBrightness();
+  //         Serial.println("Increase Brightness.");
+  //         break;
+  //       case brightnessDownMessage:
+  //         decreaseBrightness();
+  //         Serial.println("Decrease Brightness.");
+  //         break;
+  //       case densityUpMessage:
+  //         increaseDensity();
+  //         Serial.println("Increase Density.");
+  //         break;
+  //       case densityDownMessage:
+  //         decreaseDensity();
+  //         Serial.println("Decrease Density.");
+  //         break;
+  //     }
 
-      // logging
-      Serial.print("Got: ");
-      for (uint_fast8_t i = 0; i < buflen; i++)
-      {
-        Serial.print(buf[i], HEX);
-        Serial.print(' ');
-      }
-      // Serial.println();
-
-      byte messageType = buf[1];
-      byte messageData = buf[2];
-
-      switch(messageType) {
-        case colorReadMessage:
-          stealColorAnimation(messageData);
-          changeAllHues(messageData);
-          Serial.println("Steal Color.");
-          break;
-        case colorClearMessage:
-          defaultAllHues();
-          Serial.println("Clear Color.");
-          break;
-        case brightnessUpMessage:
-          increaseBrightness();
-          Serial.println("Increase Brightness.");
-          break;
-        case brightnessDownMessage:
-          decreaseBrightness();
-          Serial.println("Decrease Brightness.");
-          break;
-        case densityUpMessage:
-          increaseDensity();
-          Serial.println("Increase Density.");
-          break;
-        case densityDownMessage:
-          decreaseDensity();
-          Serial.println("Decrease Density.");
-          break;
-      }
-
-      // Serial.println(loops/(millis() - startTime));
-    }
-  }
+  //     // Serial.println(loops/(millis() - startTime));
+  //   }
+  // }
 
   FastLED.show();
 
