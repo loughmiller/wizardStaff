@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <FastLED.h>
-#include <Wire.h>
-#include <VirtualWire.h>
+#include <i2c_t3.h>
 #define ARM_MATH_CM4
 #include <arm_math.h>
 #include <algorithm>    // std::sort
@@ -65,7 +64,7 @@ void changeAllHues(uint_fast8_t hue);
 void stealColorAnimation(uint_fast8_t hue);
 uint_fast16_t xy2Pos(uint_fast16_t x, uint_fast16_t y);
 void displayGauge(uint_fast16_t x, uint_fast16_t yTop, uint_fast16_t length, CHSV color, float value);
-void receiveEvent(int howMany);
+void receiveEvent(uint_fast8_t messageSize);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // BATTERY
@@ -93,12 +92,15 @@ float batteryPercentage = 100;
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // RECEIVER
 ////////////////////////////////////////////////////////////////////////////////////////////////
-const byte colorReadMessage = 0;
-const byte colorClearMessage = 1;
-const byte brightnessUpMessage = 2;
-const byte brightnessDownMessage = 3;
-const byte densityUpMessage = 4;
-const byte densityDownMessage = 5;
+const byte colorReadMessage = 1;
+const byte colorClearMessage = 2;
+const byte brightnessUpMessage = 3;
+const byte brightnessDownMessage = 4;
+const byte densityUpMessage = 5;
+const byte densityDownMessage = 6;
+
+byte messageType = 0;
+byte messageData = 0;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // ACTIONS / CONTROLS
@@ -250,6 +252,53 @@ void loop() {
     Serial.println("");
   }
 
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+  // REMOTE CONTROL
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+
+  if (messageType > 0) {
+    Serial.print("Control message:");
+    Serial.print("\t");
+    Serial.print(messageType);
+    Serial.print("\t");
+    Serial.println(messageData);
+
+  switch(messageType) {
+    case colorReadMessage:
+      stealColorAnimation(messageData);
+      changeAllHues(messageData);
+      Serial.println("Steal Color.");
+      break;
+    case colorClearMessage:
+      defaultAllHues();
+      Serial.println("Clear Color.");
+      break;
+    case brightnessUpMessage:
+      increaseBrightness();
+      Serial.println("Increase Brightness.");
+      break;
+    case brightnessDownMessage:
+      decreaseBrightness();
+      Serial.println(currentBrightness);
+      Serial.println("Decrease Brightness.");
+      break;
+    case densityUpMessage:
+      increaseDensity();
+      Serial.println("Increase Density.");
+      break;
+    case densityDownMessage:
+      decreaseDensity();
+      Serial.println("Decrease Density.");
+      break;
+    }
+
+    messageType = 0;
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+  // \ REMOTE CONTROL
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+
 //   // uint_fast32_t loopZero = millis();
 
 //   // uint_fast32_t loopOne = millis();
@@ -359,46 +408,6 @@ void loop() {
 
   sparkle->display();
 
-  //     // logging
-  //     Serial.print("Got: ");
-  //     for (uint_fast8_t i = 0; i < buflen; i++)
-  //     {
-  //       Serial.print(buf[i], HEX);
-  //       Serial.print(' ');
-  //     }
-  //     // Serial.println();
-
-  //     byte messageType = buf[1];
-  //     byte messageData = buf[2];
-
-  //     switch(messageType) {
-  //       case colorReadMessage:
-  //         stealColorAnimation(messageData);
-  //         changeAllHues(messageData);
-  //         Serial.println("Steal Color.");
-  //         break;
-  //       case colorClearMessage:
-  //         defaultAllHues();
-  //         Serial.println("Clear Color.");
-  //         break;
-  //       case brightnessUpMessage:
-  //         increaseBrightness();
-  //         Serial.println("Increase Brightness.");
-  //         break;
-  //       case brightnessDownMessage:
-  //         decreaseBrightness();
-  //         Serial.println("Decrease Brightness.");
-  //         break;
-  //       case densityUpMessage:
-  //         increaseDensity();
-  //         Serial.println("Increase Density.");
-  //         break;
-  //       case densityDownMessage:
-  //         decreaseDensity();
-  //         Serial.println("Decrease Density.");
-  //         break;
-  //     }
-
   //     // Serial.println(loops/(millis() - startTime));
   //   }
   // }
@@ -414,15 +423,22 @@ void loop() {
 
 // function that executes whenever data is received from master
 // this function is registered as an event, see setup()
-void receiveEvent(int howMany)
-{
-  while(1 < Wire.available()) // loop through all but the last
-  {
-    char c = Wire.read(); // receive byte as a character
-    Serial.print(c);         // print the character
+void receiveEvent(uint_fast8_t messageSize) {
+  if (messageSize != 2) {
+    Serial.print("Received bad I2C data.  Expected 2 bytes, got: ");
+    Serial.println(messageSize);
+    return;
   }
-  int x = Wire.read();    // receive byte as an integer
-  Serial.println(x);         // print the integer
+
+  byte data[2];
+  uint_fast8_t i = 0;
+
+  while(0 < Wire.available()) {
+    data[i] = Wire.read();
+    i++;
+  }
+  messageType = data[0];
+  messageData = data[1];
 }
 
 void stealColor() {
