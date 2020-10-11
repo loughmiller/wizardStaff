@@ -175,7 +175,7 @@ void setup() {
 
   FastLED.addLeds<WS2811_PORTDC,columns>(leds, rows);
   FastLED.setDither(1);
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, 4000);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 6000);
   FastLED.setBrightness(currentBrightness);
 
   // DISPLAY STUFF
