@@ -151,6 +151,12 @@ void samplingCallback();
 
 void setup() {
   Serial.begin(9600);	// Debugging only
+
+  // INDICATE BOOT SEQUENCE
+  setAll(0x001000);
+  FastLED.show();
+  delay(3000);
+
   Serial.println("setup");
 
   randomSeed(analogRead(A4));
@@ -167,11 +173,6 @@ void setup() {
   FastLED.setDither(1);
   FastLED.setMaxPowerInVoltsAndMilliamps(5, 4000);
   FastLED.setBrightness(currentBrightness);
-
-  // INDICATE BOOT SEQUENCE
-  setAll(0x001000);
-  FastLED.show();
-  delay(3000);
 
   // DISPLAY STUFF
   clear();
@@ -560,8 +561,6 @@ void displayGauge(uint_fast16_t x, uint_fast16_t yTop, uint_fast16_t length, CHS
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 void noteDetectionSetup() {
-  digitalWrite(MIC_AR, LOW);
-  // digitalWrite(MIC_GAIN, HIGH);
   pinMode(AUDIO_INPUT_PIN, INPUT);
   analogReadResolution(10);
   analogReadAveraging(16);
