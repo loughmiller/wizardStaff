@@ -153,21 +153,6 @@ void samplingCallback();
 
 
 void setup() {
-  Serial.begin(9600);	// Debugging only
-
-  // INDICATE BOOT SEQUENCE
-  setAll(0x001000);
-  FastLED.show();
-  delay(3000);
-
-  Serial.println("setup");
-
-  randomSeed(analogRead(A4));
-
-  noteDetectionSetup();
-
-  Wire.begin(4);                // join i2c bus with address #4
-  Wire.onReceive(receiveEvent); // register event
 
   // SETUP LEDS
   // Parallel  Pin layouts on the teensy 3/3.1:
@@ -179,6 +164,22 @@ void setup() {
   FastLED.setDither(1);
   FastLED.setMaxPowerInVoltsAndMilliamps(5, 6000);
   FastLED.setBrightness(currentBrightness);
+
+  // INDICATE BOOT SEQUENCE
+  setAll(0x002000);
+  FastLED.show();
+
+  while(!Serial && millis() < 10000);
+  Serial.println("setup");
+
+  Serial.println("setup");
+
+  randomSeed(analogRead(A4));
+
+  noteDetectionSetup();
+
+  Wire.begin(4);                // join i2c bus with address #4
+  Wire.onReceive(receiveEvent); // register event
 
   // DISPLAY STUFF
   clear();
