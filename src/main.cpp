@@ -65,6 +65,7 @@ void changeAllHues(uint_fast8_t hue);
 void stealColorAnimation(uint_fast8_t hue);
 uint_fast16_t xy2Pos(uint_fast16_t x, uint_fast16_t y);
 void displayGauge(uint_fast16_t x, uint_fast16_t yTop, uint_fast16_t length, CHSV color, float value);
+void receiveEvent(int howMany);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // BATTERY
@@ -162,6 +163,9 @@ void setup() {
   randomSeed(analogRead(A4));
 
   noteDetectionSetup();
+
+  Wire.begin(4);                // join i2c bus with address #4
+  Wire.onReceive(receiveEvent); // register event
 
   // SETUP LEDS
   // Parallel  Pin layouts on the teensy 3/3.1:
@@ -407,6 +411,19 @@ void loop() {
 // /LOOP
 
 // ACTIONS
+
+// function that executes whenever data is received from master
+// this function is registered as an event, see setup()
+void receiveEvent(int howMany)
+{
+  while(1 < Wire.available()) // loop through all but the last
+  {
+    char c = Wire.read(); // receive byte as a character
+    Serial.print(c);         // print the character
+  }
+  int x = Wire.read();    // receive byte as an integer
+  Serial.println(x);         // print the integer
+}
 
 void stealColor() {
   uint_fast8_t hue = 0;  // Will need to figure this out later
