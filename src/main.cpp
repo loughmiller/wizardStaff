@@ -171,11 +171,11 @@ void setup() {
 
   FastLED.addLeds<WS2811_PORTDC,columns>(leds, rows);
   FastLED.setDither(1);
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, 6000);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 500);
   FastLED.setBrightness(currentBrightness);
 
   // INDICATE BOOT SEQUENCE
-  setAll(0x002000);
+  setAll(0xFFFFFF);
   FastLED.show();
 
   while(!Serial && millis() < 10000);
@@ -536,10 +536,10 @@ void defaultAllHues() {
     streaks[i]->setRandomHue(true);
   }
 
-  spectrum1->setDrift(1);
-  spectrum2->setDrift(1);
-  spectrum3->setDrift(1);
-  spectrum4->setDrift(1);
+  spectrum1->setDrift(10000);
+  spectrum2->setDrift(10000);
+  spectrum3->setDrift(10000);
+  spectrum4->setDrift(10000);
 }
 
 uint_fast8_t calcHue(float r, float g, float b) {
