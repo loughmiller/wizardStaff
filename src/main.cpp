@@ -39,6 +39,13 @@ CRGB off = 0x000000;
 // STATE
 uint_fast8_t currentBrightness = brightness;
 
+// CONFIG
+uint_fast8_t maxBrightness = 255;
+uint_fast8_t minBrightness = 16;
+float maxDensity = 0.8;
+float minDensity = 0.05;
+CHSV gaugeColor(0, 0, 96);
+
 // LED display array
 CRGB leds[numLEDs];
 
@@ -112,6 +119,9 @@ uint_fast32_t setupTime = 0;
 
 bool colorStolen = false;
 
+uint_fast32_t lastBrightnessChange = 0;
+uint_fast32_t lastDensityChange = 0;
+
 // FUNCTIONS
 void stealColor();
 void clearStolenColor();
@@ -119,7 +129,6 @@ void increaseBrightness();
 void decreaseBrightness();
 void increaseDensity();
 void decreaseDensity();
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // NOTE DETECTION
@@ -280,7 +289,6 @@ void loop() {
       break;
     case brightnessDownMessage:
       decreaseBrightness();
-      Serial.println(currentBrightness);
       Serial.println("Decrease Brightness.");
       break;
     case densityUpMessage:
@@ -413,6 +421,15 @@ void loop() {
   //   }
   // }
 
+  if (millis() - lastBrightnessChange < 2000) {
+    displayGauge(0, 0, 16, gaugeColor, ((float)currentBrightness)/255.0);
+  }
+
+  if (millis() - lastDensityChange < 2000) {
+    displayGauge(0, 0, 16, gaugeColor, spectrum1->getDensity());
+  }
+
+
   FastLED.show();
 
 //   // fastLEDTime += millis() - loopThree;
@@ -458,29 +475,33 @@ void clearStolenColor() {
 }
 
 void increaseBrightness() {
-  currentBrightness = min((currentBrightness + 16), (uint_fast8_t) 240);
+  currentBrightness = min((currentBrightness + 16), (uint_fast8_t)maxBrightness);
   FastLED.setBrightness(currentBrightness);
+  lastBrightnessChange = millis();
 }
 
 void decreaseBrightness() {
-  currentBrightness = max((currentBrightness - 16), (uint_fast8_t)16);
+  currentBrightness = max((currentBrightness - 16), (uint_fast8_t)minBrightness);
   FastLED.setBrightness(currentBrightness);
+  lastBrightnessChange = millis();
 }
 
 void increaseDensity() {
-  float newDensity = min(0.8, spectrum1->getDensity() + 0.05);
+  float newDensity = min(maxDensity, spectrum1->getDensity() + 0.025);
   spectrum1->setDensity(newDensity);
   spectrum2->setDensity(newDensity);
   spectrum3->setDensity(newDensity);
   spectrum4->setDensity(newDensity);
+  lastDensityChange = millis();
 }
 
 void decreaseDensity() {
-  float newDensity = max(0.05, spectrum1->getDensity() - 0.05);
+  float newDensity = max(minDensity, spectrum1->getDensity() - 0.025);
   spectrum1->setDensity(newDensity);
   spectrum2->setDensity(newDensity);
   spectrum3->setDensity(newDensity);
   spectrum4->setDensity(newDensity);
+  lastDensityChange = millis();
 }
 
 void setAll(CRGB color) {
