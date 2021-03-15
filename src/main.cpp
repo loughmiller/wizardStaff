@@ -99,12 +99,10 @@ float batteryPercentage = 100;
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // RECEIVER
 ////////////////////////////////////////////////////////////////////////////////////////////////
-const byte colorReadMessage = 1;
-const byte colorClearMessage = 2;
-const byte brightnessUpMessage = 3;
-const byte brightnessDownMessage = 4;
-const byte densityUpMessage = 5;
-const byte densityDownMessage = 6;
+// const byte colorReadMessage = 1;
+// const byte colorClearMessage = 2;
+const byte messageTypeBrightness = 2;
+const byte messageTypeDensity = 3;
 
 byte messageType = 0;
 byte messageData = 0;
@@ -119,16 +117,11 @@ uint_fast32_t setupTime = 0;
 
 bool colorStolen = false;
 
-uint_fast32_t lastBrightnessChange = 0;
-uint_fast32_t lastDensityChange = 0;
-
 // FUNCTIONS
 void stealColor();
 void clearStolenColor();
-void increaseBrightness();
-void decreaseBrightness();
-void increaseDensity();
-void decreaseDensity();
+void setBrightness(uint8_t brightness);
+void setDensity(uint8_t density);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // NOTE DETECTION
@@ -274,30 +267,24 @@ void loop() {
     Serial.println(messageData);
 
   switch(messageType) {
-    case colorReadMessage:
-      stealColorAnimation(messageData);
-      changeAllHues(messageData);
-      Serial.println("Steal Color.");
+    // case colorReadMessage:
+    //   stealColorAnimation(messageData);
+    //   changeAllHues(messageData);
+    //   Serial.println("Steal Color.");
+    //   break;
+    // case colorClearMessage:
+    //   defaultAllHues();
+    //   Serial.println("Clear Color.");
+    //   break;
+    case messageTypeBrightness:
+      setBrightness(messageData);
+      Serial.print("Brightness: ");
+      Serial.println(messageData);
       break;
-    case colorClearMessage:
-      defaultAllHues();
-      Serial.println("Clear Color.");
-      break;
-    case brightnessUpMessage:
-      increaseBrightness();
-      Serial.println("Increase Brightness.");
-      break;
-    case brightnessDownMessage:
-      decreaseBrightness();
-      Serial.println("Decrease Brightness.");
-      break;
-    case densityUpMessage:
-      increaseDensity();
-      Serial.println("Increase Density.");
-      break;
-    case densityDownMessage:
-      decreaseDensity();
-      Serial.println("Decrease Density.");
+    case messageTypeDensity:
+      setDensity(messageData);
+      Serial.print("Density: ");
+      Serial.println(messageData);
       break;
     }
 
@@ -421,14 +408,6 @@ void loop() {
   //   }
   // }
 
-  if (millis() - lastBrightnessChange < 2000) {
-    displayGauge(0, 0, 16, gaugeColor, ((float)currentBrightness)/255.0);
-  }
-
-  if (millis() - lastDensityChange < 2000) {
-    displayGauge(0, 0, 16, gaugeColor, spectrum1->getDensity());
-  }
-
 
   FastLED.show();
 
@@ -474,34 +453,17 @@ void clearStolenColor() {
   defaultAllHues();
 }
 
-void increaseBrightness() {
-  currentBrightness = min((currentBrightness + 16), (uint_fast8_t)maxBrightness);
+void setBrightness(uint8_t brightness) {
+  currentBrightness = brightness;
   FastLED.setBrightness(currentBrightness);
-  lastBrightnessChange = millis();
 }
 
-void decreaseBrightness() {
-  currentBrightness = max((currentBrightness - 16), (uint_fast8_t)minBrightness);
-  FastLED.setBrightness(currentBrightness);
-  lastBrightnessChange = millis();
-}
-
-void increaseDensity() {
-  float newDensity = min(maxDensity, spectrum1->getDensity() + 0.025);
+void setDensity(uint8_t density) {
+  float newDensity = (float)density/255.0;
   spectrum1->setDensity(newDensity);
   spectrum2->setDensity(newDensity);
   spectrum3->setDensity(newDensity);
   spectrum4->setDensity(newDensity);
-  lastDensityChange = millis();
-}
-
-void decreaseDensity() {
-  float newDensity = max(minDensity, spectrum1->getDensity() - 0.025);
-  spectrum1->setDensity(newDensity);
-  spectrum2->setDensity(newDensity);
-  spectrum3->setDensity(newDensity);
-  spectrum4->setDensity(newDensity);
-  lastDensityChange = millis();
 }
 
 void setAll(CRGB color) {
