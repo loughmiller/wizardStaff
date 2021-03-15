@@ -27,24 +27,17 @@ const uint_fast8_t columns = 10;
 const uint_fast16_t numLEDs = rows * columns;
 
 // COLORS
-const uint_fast8_t saturation = 244;
-const uint_fast8_t brightness = 255;
-const uint_fast8_t lowBatteryBrightness = 64;
-
 const uint_fast8_t pinkHue = 240;
 const uint_fast8_t blueHue = 137;
 const uint_fast8_t greenHue = 55;
 CRGB off = 0x000000;
 
-// STATE
-uint_fast8_t currentBrightness = brightness;
+const float lowBatteryBrightness = 0.25;
 
-// CONFIG
-uint_fast8_t maxBrightness = 255;
-uint_fast8_t minBrightness = 16;
-float maxDensity = 0.8;
-float minDensity = 0.05;
-CHSV gaugeColor(0, 0, 96);
+// CONTROLLABLE STATE
+uint_fast8_t brightness = 244;
+uint_fast8_t saturation = 244;
+uint_fast8_t sparkles = 65;
 
 // LED display array
 CRGB leds[numLEDs];
@@ -103,6 +96,7 @@ float batteryPercentage = 100;
 // const byte colorClearMessage = 2;
 const byte messageTypeBrightness = 2;
 const byte messageTypeDensity = 3;
+const byte messageTypeSparkles = 4;
 
 byte messageType = 0;
 byte messageData = 0;
@@ -120,8 +114,9 @@ bool colorStolen = false;
 // FUNCTIONS
 void stealColor();
 void clearStolenColor();
-void setBrightness(uint8_t brightness);
-void setDensity(uint8_t density);
+void setBrightness(uint_fast8_t brightness);
+void setDensity(uint_fast8_t density);
+void setSparkles(uint_fast8_t sparkles);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // NOTE DETECTION
@@ -165,7 +160,7 @@ void setup() {
   FastLED.addLeds<WS2811_PORTDC,columns>(leds, rows);
   FastLED.setDither(1);
   FastLED.setMaxPowerInVoltsAndMilliamps(5, 500);
-  FastLED.setBrightness(currentBrightness);
+  FastLED.setBrightness(brightness);
 
   // INDICATE BOOT SEQUENCE
   setAll(0xFFFFFF);
@@ -198,7 +193,8 @@ void setup() {
 
   Serial.println("Streaks Setup");
 
-  sparkle = new Sparkle(numLEDs, 0, 0, leds, 10000);
+  sparkle = new Sparkle(numLEDs, 0, 0, leds, 145);
+  setSparkles(sparkles);
   Serial.println("Sparkles!");
 
   // spectrum1 = new Spectrum2(columns, rows, (rows / 4) - 1, noteCount,
@@ -284,6 +280,11 @@ void loop() {
     case messageTypeDensity:
       setDensity(messageData);
       Serial.print("Density: ");
+      Serial.println(messageData);
+      break;
+    case messageTypeSparkles:
+      setSparkles(messageData);
+      Serial.print("Sparkles: ");
       Serial.println(messageData);
       break;
     }
@@ -453,18 +454,25 @@ void clearStolenColor() {
   defaultAllHues();
 }
 
-void setBrightness(uint8_t brightness) {
-  currentBrightness = brightness;
-  FastLED.setBrightness(currentBrightness);
+void setBrightness(uint_fast8_t brightness) {
+  FastLED.setBrightness(brightness);
 }
 
-void setDensity(uint8_t density) {
+void setDensity(uint_fast8_t density) {
   float newDensity = (float)density/255.0;
   spectrum1->setDensity(newDensity);
   spectrum2->setDensity(newDensity);
   spectrum3->setDensity(newDensity);
   spectrum4->setDensity(newDensity);
 }
+
+void setSparkles(uint_fast8_t sparkles) {
+  if (sparkles == 0) {
+    sparkles = 1;
+  }
+  sparkle->setEmptiness(4294967295/((float)pow(sparkles, 3.1)));
+}
+
 
 void setAll(CRGB color) {
   for (uint_fast16_t i=0; i<numLEDs; i++) {
@@ -547,7 +555,7 @@ void stealColorAnimation(uint_fast8_t hue) {
   }
 
   // Serial.println("StealColorAnimation Complete.");
-  FastLED.setBrightness(currentBrightness);
+  FastLED.setBrightness(brightness);
 }
 
 
