@@ -163,7 +163,7 @@ void setup() {
   FastLED.setBrightness(brightness);
 
   // INDICATE BOOT SEQUENCE
-  setAll(0xFFFFFF);
+  setAll(0x001100);
   FastLED.show();
 
   while(!Serial && millis() < 10000);
