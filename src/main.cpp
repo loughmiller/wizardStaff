@@ -233,10 +233,10 @@ void loop() {
   // if (false) {
     loggingTimestamp = currentTime;
 
-    Serial.print(currentTime);
+    // Serial.print(currentTime);
 
-    Serial.print("\tFrame Rate: ");
-    Serial.print(loops / ((currentTime - setupTime) / 1000));
+    // Serial.print("\tFrame Rate: ");
+    // Serial.print(loops / ((currentTime - setupTime) / 1000));
 //     // Serial.println();
 //     // Serial.print(rfTime/loops);
 //     // Serial.print("\t");
@@ -245,7 +245,7 @@ void loop() {
 //     // Serial.print(batteryTime/loops);
 //     // Serial.print("\t");
 //     // Serial.print(fastLEDTime/loops);
-    Serial.println("");
+    // Serial.println("");
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////
