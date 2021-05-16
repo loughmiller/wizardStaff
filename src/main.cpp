@@ -14,7 +14,7 @@ using namespace std;
 // DEFINE PINS HERE
 #define AUDIO_INPUT_PIN A19  // (38) Input pin for audio data.
 
-#define BATTERY_PIN A5       // Input pin for reading battery level
+#define BATTERY_PIN A13       // Input pin for reading battery level
 // WS2811_PORTDC: 2,14,7,8,6,20,21,5,15,22 - 10 way parallel
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -71,12 +71,11 @@ void receiveEvent(uint_fast8_t messageSize);
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 // CONSTANTS
-const uint_fast8_t numBatteries = 4;
-
-const float analogRatio = 310.3;
 const float batteryAlpha = 0.3;
-const float voltageDividerRatio = 0.096;
-const float batteryLoadAdjustment = 1.1;
+const float batteryReading4v = 847.0;
+const float batteryReading3v = 625.0;
+const float batteryReadingDivider = (batteryReading4v + batteryReading3v) / 7;
+
 const uint_fast32_t maxBatteryReadInteral = 32000;
 uint_fast32_t batteryReadInterval = 5000;
 
@@ -84,7 +83,7 @@ CHSV blueBatteryMeterColor(blueHue, saturation, 64);
 CHSV redBatteryMeeterColor(0, 255, 64);
 
 // STATE
-uint_fast16_t batteryReading = 435;  // start with the lowest 100% reading
+uint_fast16_t batteryReading = 840;  // start with the lowest 100% reading
 uint_fast32_t batteryTimestamp = 0;
 float batteryPercentage = 100;
 
@@ -312,9 +311,7 @@ void loop() {
     // Timestamp  currentReading  batteryReading, divided voltage, batteryVoltage
 
     batteryTimestamp = currentTime;
-    float dividedVoltage = (float)batteryReading / analogRatio;
-    float totalVoltage = dividedVoltage / voltageDividerRatio;
-    float batteryVoltage = (totalVoltage / numBatteries) * batteryLoadAdjustment;
+    float batteryVoltage = (float)batteryReading / batteryReadingDivider;
 
     // %   Voltage
     // 100	4.1
@@ -342,40 +339,42 @@ void loop() {
     if (batteryVoltage > 3.95) { batteryPercentage = 0.9; }
     if (batteryVoltage > 4.0) { batteryPercentage = 1; }
 
-    // Serial.print(currentTime);
-    // Serial.print("\t");
-    // Serial.print(currentReading);
-    // Serial.print("\t");
-    // Serial.print(batteryReading);
-    // Serial.print("\t");
+    Serial.print(currentTime);
+    Serial.print("\t");
+    Serial.print(currentReading);
+    Serial.print("\t");
+    Serial.print(batteryReading);
+    Serial.print("\t");
     // Serial.print(dividedVoltage);
     // Serial.print("\t");
-    // Serial.print(batteryVoltage);
-    // Serial.print("\t");
-    // Serial.println(batteryPercentage);
+    Serial.print(batteryVoltage);
+    Serial.print("\t");
+    Serial.print(batteryPercentage);
+    Serial.println("");
 
-    // if (batteryVoltage < 2.8) {
-    //   Serial.println("");
-    //   Serial.println("Batteries are dead!");
-    //   clear();
-    //   FastLED.show();
-    //   exit(0);
-    // }
+    if (batteryVoltage < 2.6) {
+      Serial.println("");
+      Serial.println("Batteries are dead!");
+      clear();
+      FastLED.show();
+      exit(0);
+    }
   }
 
 //   // BATTERY GAUGE
-//   CHSV batteryMeterColor = blueBatteryMeterColor;
+  CHSV batteryMeterColor = blueBatteryMeterColor;
 
-//   if (batteryPercentage < 0.2) {
-//     batteryMeterColor = redBatteryMeeterColor;
-//   }
+  if (batteryPercentage < 0.2) {
+    batteryMeterColor = redBatteryMeeterColor;
+  }
 
-//   if (batteryPercentage == 0) {
-//     displayGauge(1, 190, 10, batteryMeterColor, 1);   // display a full red gauge when we're near empty
-//     FastLED.setBrightness(lowBatteryBrightness);      // lower brightness to extend battery life
-//   } else {
-//     displayGauge(1, 190, 10, batteryMeterColor, batteryPercentage);
-//   }
+  if (batteryPercentage == 0) {
+    displayGauge(1, 190, 10, batteryMeterColor, 1);   // display a full red gauge when we're near empty
+    // brightness = lowBatteryBrightness;                // lower brightness to extend battery life
+    // setBrightness();
+  } else {
+    displayGauge(1, 190, 10, batteryMeterColor, batteryPercentage);
+  }
 
 //   // uint_least32_t loopTwo = millis();
 //   // batteryTime += loopTwo - loopOne;
