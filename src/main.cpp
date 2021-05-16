@@ -32,7 +32,7 @@ const uint_fast8_t blueHue = 137;
 const uint_fast8_t greenHue = 55;
 CRGB off = 0x000000;
 
-const float lowBatteryBrightness = 0.25;
+const uint_fast8_t lowBatteryBrightness = 60;
 
 // CONTROLLABLE STATE
 uint_fast8_t brightness = 244;
@@ -113,7 +113,7 @@ bool colorStolen = false;
 // FUNCTIONS
 void stealColor();
 void clearStolenColor();
-void setBrightness(uint_fast8_t brightness);
+void setBrightness();
 void setDensity(uint_fast8_t density);
 void setSparkles(uint_fast8_t sparkles);
 
@@ -159,15 +159,13 @@ void setup() {
   FastLED.addLeds<WS2811_PORTDC,columns>(leds, rows);
   FastLED.setDither(1);
   FastLED.setMaxPowerInVoltsAndMilliamps(5, 500);
-  FastLED.setBrightness(brightness);
+  setBrightness();
 
   // INDICATE BOOT SEQUENCE
-  setAll(0x001100);
+  setAll(0x000500);
   FastLED.show();
 
   while(!Serial && millis() < 10000);
-  Serial.println("setup");
-
   Serial.println("setup");
 
   randomSeed(analogRead(A4));
@@ -272,7 +270,8 @@ void loop() {
     //   Serial.println("Clear Color.");
     //   break;
     case messageTypeBrightness:
-      setBrightness(messageData);
+      brightness = messageData;
+      setBrightness();
       Serial.print("Brightness: ");
       Serial.println(messageData);
       break;
@@ -453,7 +452,7 @@ void clearStolenColor() {
   defaultAllHues();
 }
 
-void setBrightness(uint_fast8_t brightness) {
+void setBrightness() {
   FastLED.setBrightness(brightness);
 }
 
@@ -554,7 +553,7 @@ void stealColorAnimation(uint_fast8_t hue) {
   }
 
   // Serial.println("StealColorAnimation Complete.");
-  FastLED.setBrightness(brightness);
+  setBrightness();
 }
 
 
