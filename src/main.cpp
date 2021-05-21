@@ -91,11 +91,16 @@ float batteryPercentage = 100;
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // RECEIVER
 ////////////////////////////////////////////////////////////////////////////////////////////////
-// const byte colorReadMessage = 1;
-// const byte colorClearMessage = 2;
-const byte messageTypeBrightness = 2;
-const byte messageTypeDensity = 3;
-const byte messageTypeSparkles = 4;
+
+// message types
+const byte typeCycle = 1;
+const byte typeBrightness = 2;
+const byte typeDensity = 3;
+const byte typeSparkles = 4;
+const byte typeHue = 5;
+const byte typeStreaks = 7;
+const byte typeSolid = 8;
+const byte typeSteal = 9;
 
 byte messageType = 0;
 byte messageData = 0;
@@ -111,8 +116,6 @@ uint_fast32_t setupTime = 0;
 bool colorStolen = false;
 
 // FUNCTIONS
-void stealColor();
-void clearStolenColor();
 void setBrightness();
 void setDensity(uint_fast8_t density);
 void setSparkles(uint_fast8_t sparkles);
@@ -260,29 +263,34 @@ void loop() {
     Serial.println(messageData);
 
   switch(messageType) {
-    // case colorReadMessage:
-    //   stealColorAnimation(messageData);
-    //   changeAllHues(messageData);
-    //   Serial.println("Steal Color.");
-    //   break;
-    // case colorClearMessage:
-    //   defaultAllHues();
-    //   Serial.println("Clear Color.");
-    //   break;
-    case messageTypeBrightness:
+    case typeSteal:
+      stealColorAnimation(messageData);
+      changeAllHues(messageData);
+      Serial.println("Steal Color.");
+      break;
+    case typeCycle:
+      defaultAllHues();
+      Serial.println("Cycle Colors.");
+      break;
+    case typeBrightness:
       brightness = messageData;
       setBrightness();
       Serial.print("Brightness: ");
       Serial.println(messageData);
       break;
-    case messageTypeDensity:
+    case typeDensity:
       setDensity(messageData);
       Serial.print("Density: ");
       Serial.println(messageData);
       break;
-    case messageTypeSparkles:
+    case typeSparkles:
       setSparkles(messageData);
       Serial.print("Sparkles: ");
+      Serial.println(messageData);
+      break;
+    case typeHue:
+      changeAllHues(messageData);
+      Serial.print("Hue: ");
       Serial.println(messageData);
       break;
     }
@@ -437,15 +445,6 @@ void receiveEvent(uint_fast8_t messageSize) {
   messageData = data[1];
 }
 
-void stealColor() {
-  uint_fast8_t hue = 0;  // Will need to figure this out later
-  Serial.print("hue: ");
-  Serial.println(hue);
-  stealColorAnimation(hue);
-  changeAllHues(hue);
-  colorStolen = true;
-}
-
 void clearStolenColor() {
   Serial.println("Clear Color");
   colorStolen = false;
@@ -470,7 +469,6 @@ void setSparkles(uint_fast8_t sparkles) {
   }
   sparkle->setEmptiness(4294967295/((float)pow(sparkles, 3.1)));
 }
-
 
 void setAll(CRGB color) {
   for (uint_fast16_t i=0; i<numLEDs; i++) {
