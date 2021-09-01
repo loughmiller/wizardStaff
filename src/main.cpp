@@ -507,10 +507,10 @@ void defaultAllHues() {
     streaks[i]->setRandomHue(true);
   }
 
-  spectrum1->setDrift(10000);
-  spectrum2->setDrift(10000);
-  spectrum3->setDrift(10000);
-  spectrum4->setDrift(10000);
+  spectrum1->setDrift(20000);
+  spectrum2->setDrift(20000);
+  spectrum3->setDrift(20000);
+  spectrum4->setDrift(20000);
 }
 
 uint_fast8_t calcHue(float r, float g, float b) {
