@@ -335,31 +335,36 @@ void loop() {
     // 0	  3
 
     batteryPercentage = 0;
-    if (batteryVoltage > 3.1) { batteryPercentage = 0.1; }
+    if (batteryVoltage > 3.19) { batteryPercentage = 0.1; }
     if (batteryVoltage > 3.3) { batteryPercentage = 0.2; }
-    if (batteryVoltage > 3.4) { batteryPercentage = 0.3; }
-    if (batteryVoltage > 3.5) { batteryPercentage = 0.4; }
-    if (batteryVoltage > 3.6) { batteryPercentage = 0.5; }
-    if (batteryVoltage > 3.7) { batteryPercentage = 0.6; }
-    if (batteryVoltage > 3.8) { batteryPercentage = 0.7; }
-    if (batteryVoltage > 3.85) { batteryPercentage = 0.8; }
-    if (batteryVoltage > 3.95) { batteryPercentage = 0.9; }
-    if (batteryVoltage > 4.0) { batteryPercentage = 1; }
+    if (batteryVoltage > 3.38) { batteryPercentage = 0.3; }
+    if (batteryVoltage > 3.42) { batteryPercentage = 0.4; }
+    if (batteryVoltage > 3.54) { batteryPercentage = 0.5; }
+    if (batteryVoltage > 3.64) { batteryPercentage = 0.6; }
+    if (batteryVoltage > 3.73) { batteryPercentage = 0.7; }
+    if (batteryVoltage > 3.79) { batteryPercentage = 0.8; }
+    if (batteryVoltage > 3.89) { batteryPercentage = 0.9; }
+    if (batteryVoltage > 3.91) { batteryPercentage = 1; }
 
-    Serial.print(currentTime);
-    Serial.print("\t");
-    Serial.print(currentReading);
-    Serial.print("\t");
-    Serial.print(batteryReading);
-    Serial.print("\t");
+    // Serial.print(currentTime);
+    // Serial.print("\t");
+    // Serial.print(currentReading);
+    // Serial.print("\t");
+    // Serial.print(batteryReading);
+    // Serial.print("\t");
     // Serial.print(dividedVoltage);
     // Serial.print("\t");
-    Serial.print(batteryVoltage);
-    Serial.print("\t");
-    Serial.print(batteryPercentage);
-    Serial.println("");
+    // Serial.print(batteryVoltage);
+    // Serial.print("\t");
+    // Serial.print(batteryPercentage);
+    // Serial.println("");
 
-    if (batteryVoltage < 2.6) {
+    // Voltage under 2 means we're likely disconnected from the battery sensor
+    // and we're testing things
+    if (batteryVoltage > 2 && batteryVoltage < 2.6) {
+      Serial.println("");
+      Serial.print("Battery Voltage: ");
+      Serial.print(batteryVoltage);
       Serial.println("");
       Serial.println("Batteries are dead!");
       clear();
