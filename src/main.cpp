@@ -403,12 +403,16 @@ void loop() {
   ////////////////////////////////////////////////////////////////////////////////////////////////
   // NOTE DETECTION
   ////////////////////////////////////////////////////////////////////////////////////////////////
-  noteDetectionLoop();
+  float currentDensity = spectrum1->getDensity();
 
-  spectrum1->display(noteMagnatudes);
-  spectrum2->display(noteMagnatudes);
-  spectrum3->display(noteMagnatudes);
-  spectrum4->display(noteMagnatudes);
+  if (currentDensity > 0.02) {
+    noteDetectionLoop();
+
+    spectrum1->display(noteMagnatudes);
+    spectrum2->display(noteMagnatudes);
+    spectrum3->display(noteMagnatudes);
+    spectrum4->display(noteMagnatudes);
+  }
 
   // uint_least32_t loopThree = millis();
   // fftTime += loopThree - loopTwo;
