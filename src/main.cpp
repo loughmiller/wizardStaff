@@ -38,13 +38,14 @@ const uint_fast8_t lowBatteryBrightness = 60;
 uint_fast8_t brightness = 244;
 uint_fast8_t saturation = 244;
 uint_fast8_t sparkles = 65;
+uint_fast8_t numStreaks = 1;
 
 // LED display array
 CRGB leds[numLEDs];
 
 // streaks array
-const uint_fast8_t numStreaks = 0;
-Streak * streaks[numStreaks];
+const uint_fast8_t maxStreaks = 128;
+Streak * streaks[maxStreaks];
 
 // random sparkle object
 Sparkle * sparkle;
@@ -119,6 +120,7 @@ bool colorStolen = false;
 void setBrightness();
 void setDensity(uint_fast8_t density);
 void setSparkles(uint_fast8_t sparkles);
+void setStreaks(uint_fast8_t streaks);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // NOTE DETECTION
@@ -183,11 +185,11 @@ void setup() {
   FastLED.show();
   Serial.println("cleared");
 
-  for (uint_fast16_t i=0;i<numStreaks;i++) {
+  for (uint_fast16_t i=0;i<maxStreaks;i++) {
     streaks[i] = new Streak(columns, rows, greenHue, saturation, leds);
     streaks[i]->setRandomHue(true);
-    streaks[i]->setIntervalMinMax(9, 23);
-    streaks[i]->setLengthMinMax(13, 37);
+    streaks[i]->setIntervalMinMax(6, 18);
+    streaks[i]->setLengthMinMax(9, 57);
     streaks[i]->inititalize(millis());
   }
 
@@ -286,6 +288,11 @@ void loop() {
     case typeSparkles:
       setSparkles(messageData);
       Serial.print("Sparkles: ");
+      Serial.println(messageData);
+      break;
+    case typeStreaks:
+      setStreaks(messageData);
+      Serial.print("Streaks: ");
       Serial.println(messageData);
       break;
     case typeHue:
@@ -410,9 +417,9 @@ void loop() {
   // \ NOTE DETECTION
   ////////////////////////////////////////////////////////////////////////////////////////////////
 
-//   for (uint_fast16_t i=0;i<numStreaks;i++) {
-//     streaks[i]->display(currentTime);
-//   }
+  for (uint_fast16_t i=0;i<numStreaks;i++) {
+    streaks[i]->display(currentTime);
+  }
 
   sparkle->display();
 
@@ -475,6 +482,10 @@ void setSparkles(uint_fast8_t sparkles) {
   sparkle->setEmptiness(4294967295/((float)pow(sparkles, 3.1)));
 }
 
+void setStreaks(uint_fast8_t streaks) {
+  numStreaks = min(streaks/(256/maxStreaks), maxStreaks);
+}
+
 void setAll(CRGB color) {
   for (uint_fast16_t i=0; i<numLEDs; i++) {
     leds[i] = color;
@@ -486,7 +497,7 @@ void clear() {
 }
 
 void changeAllHues(uint_fast8_t hue) {
-  for (uint_fast16_t i=0;i<numStreaks;i++) {
+  for (uint_fast16_t i=0;i<maxStreaks;i++) {
     streaks[i]->setRandomHue(false);
     streaks[i]->setHue(hue);
   }
@@ -503,7 +514,7 @@ void changeAllHues(uint_fast8_t hue) {
 }
 
 void defaultAllHues() {
-  for (uint_fast16_t i=0;i<numStreaks;i++) {
+  for (uint_fast16_t i=0;i<maxStreaks;i++) {
     streaks[i]->setRandomHue(true);
   }
 
