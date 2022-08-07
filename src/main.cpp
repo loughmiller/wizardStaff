@@ -209,13 +209,13 @@ void setup() {
   //   pinkHue, saturation, false, leds);
 
   spectrum1 = new Spectrum2(columns, rows, 0, noteCount,
-    pinkHue, saturation, false, leds);
-  spectrum2 = new Spectrum2(columns, rows, (rows / 2) - 1, noteCount,
-    pinkHue, saturation, true, leds);
+    pinkHue, saturation, false, true, leds);
+ spectrum2 = new Spectrum2(columns, rows, (rows / 2) - 1, noteCount,
+    pinkHue, saturation, true, false, leds);
   spectrum3 = new Spectrum2(columns, rows, (rows / 2), noteCount,
-    pinkHue, saturation, false, leds);
-  spectrum4 = new Spectrum2(columns, rows, rows - 1, noteCount,
-    pinkHue, saturation, true, leds);
+    pinkHue, saturation, false, false, leds);
+  spectrum4 = new Spectrum2(columns, rows, ((rows / 4) * 3) - 1, noteCount,
+    pinkHue, saturation, true, true, leds);
 
 
   defaultAllHues();
