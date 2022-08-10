@@ -60,7 +60,7 @@ Spectrum2 * spectrum4;
 void clear();
 void setAll(CRGB color);
 uint_fast8_t calcHue(float r, float g, float b);
-void defaultAllHues();
+void setHueDrift(uint_fast8_t drift);
 void changeAllHues(uint_fast8_t hue);
 void stealColorAnimation(uint_fast8_t hue);
 uint_fast16_t xy2Pos(uint_fast16_t x, uint_fast16_t y);
@@ -218,7 +218,7 @@ void setup() {
     pinkHue, saturation, true, true, leds);
 
 
-  defaultAllHues();
+  setHueDrift(64);
 
   Serial.println("setup complete");
   setupTime = millis();
@@ -271,7 +271,7 @@ void loop() {
       Serial.println("Steal Color.");
       break;
     case typeCycle:
-      defaultAllHues();
+      setHueDrift(messageData);
       Serial.println("Cycle Colors.");
       break;
     case typeBrightness:
@@ -461,12 +461,6 @@ void receiveEvent(uint_fast8_t messageSize) {
   messageData = data[1];
 }
 
-void clearStolenColor() {
-  Serial.println("Clear Color");
-  colorStolen = false;
-  defaultAllHues();
-}
-
 void setBrightness() {
   FastLED.setBrightness(brightness);
 }
@@ -517,15 +511,20 @@ void changeAllHues(uint_fast8_t hue) {
   spectrum4->setDrift(0);
 }
 
-void defaultAllHues() {
+void setHueDrift(uint_fast8_t drift) {
   for (uint_fast16_t i=0;i<maxStreaks;i++) {
     streaks[i]->setRandomHue(true);
   }
 
-  spectrum1->setDrift(20000);
-  spectrum2->setDrift(20000);
-  spectrum3->setDrift(20000);
-  spectrum4->setDrift(20000);
+  uint_fast32_t driftms = pow(drift / 4, 2);
+
+  Serial.print("driftms: ");
+  Serial.println(driftms);
+
+  spectrum1->setDrift(driftms);
+  spectrum2->setDrift(driftms);
+  spectrum3->setDrift(driftms);
+  spectrum4->setDrift(driftms);
 }
 
 uint_fast8_t calcHue(float r, float g, float b) {
