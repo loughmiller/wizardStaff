@@ -39,6 +39,7 @@ uint_fast8_t brightness = 244;
 uint_fast8_t saturation = 244;
 uint_fast8_t sparkles = 65;
 uint_fast8_t numStreaks = 1;
+uint_fast8_t drift = 20;
 
 // LED display array
 CRGB leds[numLEDs];
@@ -210,7 +211,7 @@ void setup() {
 
   spectrum1 = new Spectrum2(columns, rows, 0, noteCount,
     pinkHue, saturation, false, true, leds);
- spectrum2 = new Spectrum2(columns, rows, (rows / 2) - 1, noteCount,
+  spectrum2 = new Spectrum2(columns, rows, (rows / 2) - 1, noteCount,
     pinkHue, saturation, true, false, leds);
   spectrum3 = new Spectrum2(columns, rows, (rows / 2), noteCount,
     pinkHue, saturation, false, false, leds);
@@ -218,7 +219,7 @@ void setup() {
     pinkHue, saturation, true, true, leds);
 
 
-  setHueDrift(64);
+  setHueDrift(drift);
 
   Serial.println("setup complete");
   setupTime = millis();
@@ -412,6 +413,11 @@ void loop() {
     spectrum2->display(noteMagnatudes);
     spectrum3->display(noteMagnatudes);
     spectrum4->display(noteMagnatudes);
+
+    spectrum1->driftLoop(currentTime);
+    spectrum2->driftLoop(currentTime);
+    spectrum3->driftLoop(currentTime);
+    spectrum4->driftLoop(currentTime);
   }
 
   // uint_least32_t loopThree = millis();
@@ -444,6 +450,16 @@ void loop() {
 // function that executes whenever data is received from master
 // this function is registered as an event, see setup()
 void receiveEvent(uint_fast8_t messageSize) {
+  // sync event
+  if (messageSize == 4) {
+    messageType = Wire.read();
+    messageData = Wire.read();
+    messageData = messageData << 8;
+    messageData += Wire.read();
+    messageData = messageData << 8;
+    messageData += Wire.read();
+  }
+
   if (messageSize != 2) {
     Serial.print("Received bad I2C data.  Expected 2 bytes, got: ");
     Serial.println(messageSize);
@@ -516,15 +532,10 @@ void setHueDrift(uint_fast8_t drift) {
     streaks[i]->setRandomHue(true);
   }
 
-  uint_fast32_t driftms = pow(drift / 4, 2);
-
-  Serial.print("driftms: ");
-  Serial.println(driftms);
-
-  spectrum1->setDrift(driftms);
-  spectrum2->setDrift(driftms);
-  spectrum3->setDrift(driftms);
-  spectrum4->setDrift(driftms);
+  spectrum1->setDrift(drift);
+  spectrum2->setDrift(drift);
+  spectrum3->setDrift(drift);
+  spectrum4->setDrift(drift);
 }
 
 uint_fast8_t calcHue(float r, float g, float b) {
