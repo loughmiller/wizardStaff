@@ -39,7 +39,6 @@ uint_fast8_t brightness = 244;
 uint_fast8_t saturation = 244;
 uint_fast8_t sparkles = 65;
 uint_fast8_t numStreaks = 1;
-uint_fast8_t drift = 20;
 
 // LED display array
 CRGB leds[numLEDs];
@@ -57,11 +56,14 @@ Spectrum2 * spectrum2;
 Spectrum2 * spectrum3;
 Spectrum2 * spectrum4;
 
+// SOLID
+Visualization * all;
+
 // FUNTION DEFINITIONS
 void clear();
 void setAll(CRGB color);
 uint_fast8_t calcHue(float r, float g, float b);
-void setHueDrift(uint_fast8_t drift);
+void setCycle(uint_fast8_t cycle);
 void changeAllHues(uint_fast8_t hue);
 void stealColorAnimation(uint_fast8_t hue);
 uint_fast16_t xy2Pos(uint_fast16_t x, uint_fast16_t y);
@@ -218,15 +220,15 @@ void setup() {
   spectrum4 = new Spectrum2(columns, rows, ((rows / 4) * 3) - 1, noteCount,
     pinkHue, saturation, true, true, leds);
 
-
-  setHueDrift(drift);
+  all = new Visualization(columns, rows, 0, 244, leds);
+  all->setValue(24);
 
   Serial.println("setup complete");
   setupTime = millis();
 }
 
 uint_fast32_t loggingTimestamp = 0;
-
+uint_fast32_t lastLoops = 0;
 // LOOP
 void loop() {
 
@@ -235,11 +237,11 @@ void loop() {
   uint_fast32_t currentTime = millis();
 
   // put things we want to log here
-  if (currentTime > loggingTimestamp + 5000) {
+  if (currentTime > loggingTimestamp + 300) {
   // if (false) {
     loggingTimestamp = currentTime;
 
-    // Serial.print(currentTime);
+    // Serial.println(currentTime);
 
     // Serial.print("\tFrame Rate: ");
     // Serial.print(loops / ((currentTime - setupTime) / 1000));
@@ -259,11 +261,11 @@ void loop() {
   ////////////////////////////////////////////////////////////////////////////////////////////////
 
   if (messageType > 0) {
-    Serial.print("Control message:");
-    Serial.print("\t");
-    Serial.print(messageType);
-    Serial.print("\t");
-    Serial.println(messageData);
+    // Serial.print("Control message:");
+    // Serial.print("\t");
+    // Serial.print(messageType);
+    // Serial.print("\t");
+    // Serial.println(messageData);
 
   switch(messageType) {
     case typeSteal:
@@ -272,7 +274,7 @@ void loop() {
       Serial.println("Steal Color.");
       break;
     case typeCycle:
-      setHueDrift(messageData);
+      setCycle(messageData);
       Serial.println("Cycle Colors.");
       break;
     case typeBrightness:
@@ -414,10 +416,10 @@ void loop() {
     spectrum3->display(noteMagnatudes);
     spectrum4->display(noteMagnatudes);
 
-    spectrum1->driftLoop(currentTime);
-    spectrum2->driftLoop(currentTime);
-    spectrum3->driftLoop(currentTime);
-    spectrum4->driftLoop(currentTime);
+    spectrum1->cycleLoop(currentTime);
+    spectrum2->cycleLoop(currentTime);
+    spectrum3->cycleLoop(currentTime);
+    spectrum4->cycleLoop(currentTime);
   }
 
   // uint_least32_t loopThree = millis();
@@ -431,13 +433,15 @@ void loop() {
     streaks[i]->display(currentTime);
   }
 
-  sparkle->display();
+  sparkle->display(currentTime);
 
   //     // Serial.println(loops/(millis() - startTime));
   //   }
   // }
 
 
+  // all->setAll();
+  // all->cycleLoop(currentTime);
   FastLED.show();
 
 //   // fastLEDTime += millis() - loopThree;
@@ -451,22 +455,62 @@ void loop() {
 // this function is registered as an event, see setup()
 void receiveEvent(uint_fast8_t messageSize) {
   // sync event
-  if (messageSize == 4) {
-    messageType = Wire.read();
-    messageData = Wire.read();
-    messageData = messageData << 8;
-    messageData += Wire.read();
-    messageData = messageData << 8;
-    messageData += Wire.read();
-  }
+  if (messageSize == 5) {
+    uint32_t currentTime = millis();
 
-  if (messageSize != 2) {
-    Serial.print("Received bad I2C data.  Expected 2 bytes, got: ");
-    Serial.println(messageSize);
+    messageType = Wire.read();
+    if (messageType != 10) {
+      Serial.print("\tReceived bad I2C data.  Expected sync message, got: ");
+      Serial.println(messageType);
+    }
+
+    uint32_t sync = 0;
+
+    int syncBytes[4];
+
+    for (uint_fast8_t i = 0; i < 4; i++) {
+      syncBytes[i] = Wire.read();
+      // Serial.print(syncBytes[i]);
+      // Serial.print("\t");
+    }
+    // Serial.println();
+
+    // Serial.print(syncBytes[0] << 24);
+    // Serial.print("\t");
+    // Serial.print(syncBytes[1] << 16);
+    // Serial.print("\t");
+    // Serial.print(syncBytes[2] << 8);
+    // Serial.print("\t");
+    // Serial.print(syncBytes[3]);
+    // Serial.println("\t");
+
+    sync = (syncBytes[0] << 24) + (syncBytes[1] << 16) +
+      (syncBytes[2] << 8) + syncBytes[3];
+
+    // Serial.print(currentTime);
+    // Serial.print("\t");
+    // Serial.print("sync: ");
+    // Serial.print(sync);
+    // Serial.println();
+
+    spectrum1->synchronize(currentTime, sync);
+    spectrum2->synchronize(currentTime, sync);
+    spectrum3->synchronize(currentTime, sync);
+    spectrum4->synchronize(currentTime, sync);
+
+    all->synchronize(currentTime, sync);
+    sparkle->synchronize(currentTime, sync);
     return;
   }
 
-  byte data[2];
+  if (messageSize != 2) {
+    Serial.print("\tReceived bad I2C data.  Expected 2 bytes, got: ");
+    Serial.println(messageSize);
+
+    return;
+  }
+
+  byte data[5];
   uint_fast8_t i = 0;
 
   while(0 < Wire.available()) {
@@ -521,21 +565,24 @@ void changeAllHues(uint_fast8_t hue) {
   spectrum3->setHue(hue);
   spectrum4->setHue(hue);
 
-  spectrum1->setDrift(0);
-  spectrum2->setDrift(0);
-  spectrum3->setDrift(0);
-  spectrum4->setDrift(0);
+  spectrum1->setCycle(0);
+  spectrum2->setCycle(0);
+  spectrum3->setCycle(0);
+  spectrum4->setCycle(0);
 }
 
-void setHueDrift(uint_fast8_t drift) {
+void setCycle(uint_fast8_t cycle) {
   for (uint_fast16_t i=0;i<maxStreaks;i++) {
     streaks[i]->setRandomHue(true);
   }
 
-  spectrum1->setDrift(drift);
-  spectrum2->setDrift(drift);
-  spectrum3->setDrift(drift);
-  spectrum4->setDrift(drift);
+  spectrum1->setCycle(cycle);
+  spectrum2->setCycle(cycle);
+  spectrum3->setCycle(cycle);
+  spectrum4->setCycle(cycle);
+
+  all->setCycle(cycle);
+  sparkle->setCycle(cycle);
 }
 
 uint_fast8_t calcHue(float r, float g, float b) {
